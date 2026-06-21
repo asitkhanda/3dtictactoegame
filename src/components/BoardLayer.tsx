@@ -5,67 +5,90 @@ import { cn } from '../lib/utils';
 
 interface BoardLayerProps {
   layerIndex: number;
+  totalLayers: number;
+  size: number;
+  cellsPerLayer: number;
+  boardPx: number;
+  cellPx: number;
+  gapPx: number;
+  spacingZ: number;
+  pieceStackCount: number;
   board: BoardState;
   onCellClick: (index: number) => void;
   winningLine: number[] | null;
   disabled: boolean;
+  showLabel?: boolean;
 }
 
-export function BoardLayer({ layerIndex, board, onCellClick, winningLine, disabled }: BoardLayerProps) {
-  // Calculate indices for this layer (0..8 for layer 0, 9..17 for layer 1, etc.)
-  const startIndex = layerIndex * 9;
-  const cells = Array.from({ length: 9 }, (_, i) => {
+export function BoardLayer({
+  layerIndex,
+  totalLayers,
+  size,
+  cellsPerLayer,
+  boardPx,
+  cellPx,
+  gapPx,
+  spacingZ,
+  pieceStackCount,
+  board,
+  onCellClick,
+  winningLine,
+  disabled,
+  showLabel = true,
+}: BoardLayerProps) {
+  const startIndex = layerIndex * cellsPerLayer;
+  const cells = Array.from({ length: cellsPerLayer }, (_, i) => {
     const globalIndex = startIndex + i;
     return {
       index: globalIndex,
       value: board[globalIndex],
-      isWinning: winningLine?.includes(globalIndex) ?? false
+      isWinning: winningLine?.includes(globalIndex) ?? false,
     };
   });
 
+  const zOffset = (layerIndex - (totalLayers - 1) / 2) * spacingZ;
+
   return (
-    <div 
+    <div
       className={cn(
-        "absolute p-4 rounded-2xl transition-all duration-500",
-        "bg-slate-900/40 backdrop-blur-sm border border-white/10",
-        "shadow-[0_0_50px_rgba(0,0,0,0.3)]",
-        // Dynamic border glow based on layer position/activity could be cool, but keep it clean for now
-        "hover:border-white/20"
+        'absolute rounded-xl border border-border/60 bg-card/70 shadow-xl backdrop-blur-sm',
+        'ring-1 ring-white/5 transition-all duration-500'
       )}
       style={{
-        width: '300px', 
-        height: '300px',
-        transform: `translate(-50%, -50%) translateZ(${(layerIndex - 1) * 160}px)`, // Increased spacing slightly for better 3D view
+        width: boardPx,
+        height: boardPx,
+        padding: Math.max(8, gapPx),
+        transform: `translate(-50%, -50%) translateZ(${zOffset}px)`,
         transformStyle: 'preserve-3d',
       }}
     >
-      {/* Decorative Glass Edge Highlight */}
-      <div className="absolute inset-0 rounded-2xl ring-1 ring-white/5 pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/20 rounded-2xl pointer-events-none" />
+      {showLabel && totalLayers > 1 && (
+        <div className="text-muted-foreground absolute -top-6 left-1/2 hidden -translate-x-1/2 items-center gap-1.5 select-none pointer-events-none sm:flex">
+          <span className="font-mono text-[10px] font-medium tracking-widest">
+            L{layerIndex + 1}
+          </span>
+        </div>
+      )}
 
-      {/* Corner Accents */}
-      <div className="absolute -top-[1px] -left-[1px] w-4 h-4 border-t-2 border-l-2 border-white/30 rounded-tl-lg" />
-      <div className="absolute -top-[1px] -right-[1px] w-4 h-4 border-t-2 border-r-2 border-white/30 rounded-tr-lg" />
-      <div className="absolute -bottom-[1px] -left-[1px] w-4 h-4 border-b-2 border-l-2 border-white/30 rounded-bl-lg" />
-      <div className="absolute -bottom-[1px] -right-[1px] w-4 h-4 border-b-2 border-r-2 border-white/30 rounded-br-lg" />
-
-      {/* Layer Label floating off the side */}
-      <div 
-        className="absolute -left-16 top-1/2 -translate-y-1/2 flex items-center gap-2 -rotate-90 pointer-events-none select-none opacity-60"
+      <div
+        className="h-full w-full"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${size}, 1fr)`,
+          gap: gapPx,
+          transformStyle: 'preserve-3d',
+        }}
       >
-        <div className="w-8 h-px bg-white/30" />
-        <span className="font-mono text-xs text-white/60 tracking-widest font-bold">LAYER {layerIndex + 1}</span>
-      </div>
-
-      {/* Grid Container */}
-      <div className="grid grid-cols-3 gap-3 w-full h-full" style={{ transformStyle: 'preserve-3d' }}>
         {cells.map((cell) => (
           <Cell
             key={cell.index}
+            cellIndex={cell.index}
             value={cell.value}
             onClick={() => onCellClick(cell.index)}
             isWinningCell={cell.isWinning}
             disabled={disabled || cell.value !== null}
+            cellSize={cellPx}
+            pieceStackCount={pieceStackCount}
           />
         ))}
       </div>

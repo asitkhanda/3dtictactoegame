@@ -1,243 +1,433 @@
+import { GameConfig } from './gameConfig';
 
 type Player = 'X' | 'O' | null;
 export type BoardState = Player[];
 
-// 3x3x3 = 27 cells
-// Indices: x + y*3 + z*9
-// x: 0..2, y: 0..2, z: 0..2
+export type LayerResult = { winner: Player; line: number[] | null };
 
-// Generate winning lines for a specific layer (z)
-function getLayerLines(z: number): number[][] {
+export interface GameState {
+  board: BoardState;
+  layerWinners: LayerResult[];
+}
+
+export function createInitialState(config: GameConfig): GameState {
+  return {
+    board: Array(config.cellCount).fill(null),
+    layerWinners: Array.from({ length: config.layerCount }, () => ({
+      winner: null,
+      line: null,
+    })),
+  };
+}
+
+export function generateLayerLines(config: GameConfig, layerIndex: number): number[][] {
+  const { size, cellsPerLayer } = config;
   const lines: number[][] = [];
-  const offset = z * 9;
+  const offset = layerIndex * cellsPerLayer;
 
-  // Rows
-  for (let y = 0; y < 3; y++) {
-    lines.push([
-      offset + y * 3 + 0,
-      offset + y * 3 + 1,
-      offset + y * 3 + 2
-    ]);
+  for (let y = 0; y < size; y++) {
+    const row: number[] = [];
+    for (let x = 0; x < size; x++) {
+      row.push(offset + y * size + x);
+    }
+    lines.push(row);
   }
 
-  // Columns
-  for (let x = 0; x < 3; x++) {
-    lines.push([
-      offset + x + 0 * 3,
-      offset + x + 1 * 3,
-      offset + x + 2 * 3
-    ]);
+  for (let x = 0; x < size; x++) {
+    const col: number[] = [];
+    for (let y = 0; y < size; y++) {
+      col.push(offset + y * size + x);
+    }
+    lines.push(col);
   }
 
-  // Diagonals
-  lines.push([
-    offset + 0,
-    offset + 4,
-    offset + 8
-  ]);
-  lines.push([
-    offset + 2,
-    offset + 4,
-    offset + 6
-  ]);
+  const mainDiag: number[] = [];
+  const antiDiag: number[] = [];
+  for (let i = 0; i < size; i++) {
+    mainDiag.push(offset + i * size + i);
+    antiDiag.push(offset + i * size + (size - 1 - i));
+  }
+  lines.push(mainDiag, antiDiag);
 
   return lines;
 }
 
-export const LAYER_LINES = [
-  getLayerLines(0),
-  getLayerLines(1),
-  getLayerLines(2)
-];
-
-// --- CROSS LAYER LOGIC ---
-
-function getCrossLayerLines(): number[][] {
+export function generateCrossLayerLines(config: GameConfig): number[][] {
+  const { size, cellsPerLayer } = config;
   const lines: number[][] = [];
 
-  // 1. Verticals (Same x, y, varying z)
-  for (let x = 0; x < 3; x++) {
-    for (let y = 0; y < 3; y++) {
-      lines.push([
-        0 * 9 + y * 3 + x,
-        1 * 9 + y * 3 + x,
-        2 * 9 + y * 3 + x
-      ]);
+  for (let x = 0; x < size; x++) {
+    for (let y = 0; y < size; y++) {
+      const vertical: number[] = [];
+      for (let z = 0; z < size; z++) {
+        vertical.push(config.index(x, y, z));
+      }
+      lines.push(vertical);
     }
   }
 
-  // 2. Diagonals on XZ planes (Constant y)
-  for (let y = 0; y < 3; y++) {
-    // Forward slash in XZ
-    lines.push([
-      0 * 9 + y * 3 + 0,
-      1 * 9 + y * 3 + 1,
-      2 * 9 + y * 3 + 2
-    ]);
-    // Back slash in XZ
-    lines.push([
-      0 * 9 + y * 3 + 2,
-      1 * 9 + y * 3 + 1,
-      2 * 9 + y * 3 + 0
-    ]);
+  for (let y = 0; y < size; y++) {
+    const forward: number[] = [];
+    const back: number[] = [];
+    for (let z = 0; z < size; z++) {
+      forward.push(config.index(z, y, z));
+      back.push(config.index(size - 1 - z, y, z));
+    }
+    lines.push(forward, back);
   }
 
-  // 3. Diagonals on YZ planes (Constant x)
-  for (let x = 0; x < 3; x++) {
-    // Forward slash in YZ
-    lines.push([
-      0 * 9 + 0 * 3 + x,
-      1 * 9 + 1 * 3 + x,
-      2 * 9 + 2 * 3 + x
-    ]);
-    // Back slash in YZ
-    lines.push([
-      0 * 9 + 2 * 3 + x,
-      1 * 9 + 1 * 3 + x,
-      2 * 9 + 0 * 3 + x
-    ]);
+  for (let x = 0; x < size; x++) {
+    const forward: number[] = [];
+    const back: number[] = [];
+    for (let z = 0; z < size; z++) {
+      forward.push(config.index(x, z, z));
+      back.push(config.index(x, size - 1 - z, z));
+    }
+    lines.push(forward, back);
   }
 
-  // 4. Main Space Diagonals (Corner to Corner through center)
-  lines.push([0, 13, 26]); // 0,0,0 -> 2,2,2
-  lines.push([2, 13, 24]); // 2,0,0 -> 0,2,2
-  lines.push([6, 13, 20]); // 0,2,0 -> 2,0,2
-  lines.push([8, 13, 18]); // 2,2,0 -> 0,0,2
+  const spaceDiagonals = [
+    (z: number) => config.index(z, z, z),
+    (z: number) => config.index(size - 1 - z, z, z),
+    (z: number) => config.index(z, size - 1 - z, z),
+    (z: number) => config.index(size - 1 - z, size - 1 - z, z),
+  ];
+
+  for (const fn of spaceDiagonals) {
+    const diag: number[] = [];
+    for (let z = 0; z < size; z++) {
+      diag.push(fn(z));
+    }
+    lines.push(diag);
+  }
 
   return lines;
 }
 
-export const CROSS_LAYER_LINES = getCrossLayerLines();
-
-export function checkCrossLayerWinner(board: BoardState): { winner: Player, line: number[] | null } {
-  for (const line of CROSS_LAYER_LINES) {
-    const [a, b, c] = line;
-    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-      return { winner: board[a], line };
-    }
-  }
-  return { winner: null, line: null };
-}
-
-// Helper to check a specific layer for a winner
-export function checkLayerWinner(board: BoardState, layerIndex: number): { winner: Player, line: number[] | null } {
-  const lines = LAYER_LINES[layerIndex];
+function checkLinesWinner(
+  board: BoardState,
+  lines: number[][],
+  winLength: number
+): { winner: Player; line: number[] | null } {
   for (const line of lines) {
-    const [a, b, c] = line;
-    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-      return { winner: board[a], line };
+    if (line.length < winLength) continue;
+    const first = board[line[0]];
+    if (!first) continue;
+    if (line.every((idx) => board[idx] === first)) {
+      return { winner: first, line };
     }
   }
   return { winner: null, line: null };
 }
 
-export function isLayerFull(board: BoardState, layerIndex: number): boolean {
-    const offset = layerIndex * 9;
-    for(let i=0; i<9; i++) {
-        if(board[offset + i] === null) return false;
-    }
-    return true;
+export function checkCrossLayerWinner(
+  config: GameConfig,
+  board: BoardState
+): { winner: Player; line: number[] | null } {
+  if (!config.is3D || config.size <= 1) {
+    return { winner: null, line: null };
+  }
+  return checkLinesWinner(board, generateCrossLayerLines(config), config.winLength);
 }
 
-export function isDraw(board: BoardState): boolean {
+export function checkLayerWinner(
+  config: GameConfig,
+  board: BoardState,
+  layerIndex: number
+): { winner: Player; line: number[] | null } {
+  return checkLinesWinner(
+    board,
+    generateLayerLines(config, layerIndex),
+    config.winLength
+  );
+}
+
+export function checkBoardWinner(
+  config: GameConfig,
+  board: BoardState
+): { winner: Player; line: number[] | null } {
+  return checkLayerWinner(config, board, 0);
+}
+
+export function isLayerFull(
+  config: GameConfig,
+  board: BoardState,
+  layerIndex: number
+): boolean {
+  const offset = layerIndex * config.cellsPerLayer;
+  for (let i = 0; i < config.cellsPerLayer; i++) {
+    if (board[offset + i] === null) return false;
+  }
+  return true;
+}
+
+export function isDraw(config: GameConfig, board: BoardState): boolean {
   return board.every((cell) => cell !== null);
 }
 
-// --- AI Logic ---
+export interface MoveResult {
+  board: BoardState;
+  layerWinners: LayerResult[];
+  winner: Player;
+  draw: boolean;
+  crossLayerWinningLine: number[] | null;
+  winningLine: number[] | null;
+  isXNext: boolean;
+}
 
-export function getComputerMove(board: BoardState, layerWinners: { winner: Player }[]): number {
-  const aiPlayer = 'O';
-  const humanPlayer = 'X';
+export function applyMove(
+  config: GameConfig,
+  board: BoardState,
+  layerWinners: LayerResult[],
+  index: number,
+  isXNext: boolean
+): MoveResult | null {
+  const player: Player = isXNext ? 'X' : 'O';
+  const layerIndex = config.layerOf(index);
 
-  // Helper to check if a move is valid:
-  // 1. The cell must be empty
-  // 2. The layer must NOT be won yet (since won layers are frozen)
+  if (board[index] || layerWinners[layerIndex]?.winner) {
+    return null;
+  }
+
+  const newBoard = [...board];
+  newBoard[index] = player;
+  const newLayerWinners = [...layerWinners];
+
+  if (config.size === 1) {
+    return {
+      board: newBoard,
+      layerWinners: newLayerWinners,
+      winner: player,
+      draw: false,
+      crossLayerWinningLine: null,
+      winningLine: [0],
+      isXNext: !isXNext,
+    };
+  }
+
+  if (config.is3D) {
+    const crossLayerResult = checkCrossLayerWinner(config, newBoard);
+    if (crossLayerResult.winner) {
+      return {
+        board: newBoard,
+        layerWinners: newLayerWinners,
+        winner: crossLayerResult.winner,
+        draw: false,
+        crossLayerWinningLine: crossLayerResult.line,
+        winningLine: crossLayerResult.line,
+        isXNext: !isXNext,
+      };
+    }
+
+    const layerResult = checkLayerWinner(config, newBoard, layerIndex);
+    if (layerResult.winner) {
+      newLayerWinners[layerIndex] = layerResult;
+    }
+
+    const xWins = newLayerWinners.filter((l) => l.winner === 'X').length;
+    const oWins = newLayerWinners.filter((l) => l.winner === 'O').length;
+
+    if (xWins >= config.matchWinThreshold) {
+      return {
+        board: newBoard,
+        layerWinners: newLayerWinners,
+        winner: 'X',
+        draw: false,
+        crossLayerWinningLine: null,
+        winningLine: layerResult.line,
+        isXNext: !isXNext,
+      };
+    }
+    if (oWins >= config.matchWinThreshold) {
+      return {
+        board: newBoard,
+        layerWinners: newLayerWinners,
+        winner: 'O',
+        draw: false,
+        crossLayerWinningLine: null,
+        winningLine: layerResult.line,
+        isXNext: !isXNext,
+      };
+    }
+  } else {
+    const boardResult = checkBoardWinner(config, newBoard);
+    if (boardResult.winner) {
+      return {
+        board: newBoard,
+        layerWinners: newLayerWinners,
+        winner: boardResult.winner,
+        draw: false,
+        crossLayerWinningLine: null,
+        winningLine: boardResult.line,
+        isXNext: !isXNext,
+      };
+    }
+  }
+
+  if (isDraw(config, newBoard)) {
+    return {
+      board: newBoard,
+      layerWinners: newLayerWinners,
+      winner: null,
+      draw: true,
+      crossLayerWinningLine: null,
+      winningLine: null,
+      isXNext: !isXNext,
+    };
+  }
+
+  return {
+    board: newBoard,
+    layerWinners: newLayerWinners,
+    winner: null,
+    draw: false,
+    crossLayerWinningLine: null,
+    winningLine: null,
+    isXNext: !isXNext,
+  };
+}
+
+function getCubeCorners(config: GameConfig): number[] {
+  const { size } = config;
+  const last = size - 1;
+  const zValues = config.is3D ? [0, last] : [0];
+  const corners: number[] = [];
+
+  for (const z of zValues) {
+    corners.push(
+      config.index(0, 0, z),
+      config.index(last, 0, z),
+      config.index(0, last, z),
+      config.index(last, last, z)
+    );
+  }
+
+  return [...new Set(corners)];
+}
+
+function getStrategicCenters(config: GameConfig): number[] {
+  const { size } = config;
+  const mid = Math.floor(size / 2);
+  const centers: number[] = [];
+
+  if (config.is3D) {
+    centers.push(config.index(mid, mid, mid));
+    for (let z = 0; z < config.layerCount; z++) {
+      const c = config.index(mid, mid, z);
+      if (!centers.includes(c)) centers.push(c);
+    }
+  } else {
+    centers.push(config.index(mid, mid, 0));
+  }
+
+  return centers;
+}
+
+export function getComputerMove(
+  config: GameConfig,
+  board: BoardState,
+  layerWinners: LayerResult[]
+): number {
+  const aiPlayer: Player = 'O';
+  const humanPlayer: Player = 'X';
+  const winLength = config.winLength;
+
   const isValidMove = (index: number) => {
-      if (board[index] !== null) return false;
-      const layerIndex = Math.floor(index / 9);
-      if (layerWinners[layerIndex].winner !== null) return false;
-      return true;
+    if (board[index] !== null) return false;
+    const layerIndex = config.layerOf(index);
+    if (layerWinners[layerIndex]?.winner !== null) return false;
+    return true;
   };
 
-  // Helper: Find a winning move for 'player' in a given set of lines
   const findWinningMoveInLines = (lines: number[][], player: Player): number | null => {
     for (const line of lines) {
-      const [a, b, c] = line;
-      const cells = [board[a], board[b], board[c]];
-      const myCount = cells.filter(c => c === player).length;
-      const emptyCount = cells.filter(c => c === null).length;
+      const cells = line.map((idx) => board[idx]);
+      const myCount = cells.filter((c) => c === player).length;
+      const emptyCount = cells.filter((c) => c === null).length;
 
-      if (myCount === 2 && emptyCount === 1) {
-        if (isValidMove(a)) return a;
-        if (isValidMove(b)) return b;
-        if (isValidMove(c)) return c;
+      if (myCount === winLength - 1 && emptyCount === 1) {
+        for (const idx of line) {
+          if (isValidMove(idx)) return idx;
+        }
       }
     }
     return null;
   };
 
-  // --- PRIORITY 1: INSTANT WIN (Cross Layer) ---
-  const instantWin = findWinningMoveInLines(CROSS_LAYER_LINES, aiPlayer);
-  if (instantWin !== null) return instantWin;
+  if (config.size === 1) {
+    return isValidMove(0) ? 0 : -1;
+  }
 
-  // --- PRIORITY 2: BLOCK INSTANT WIN (Cross Layer) ---
-  const blockInstantWin = findWinningMoveInLines(CROSS_LAYER_LINES, humanPlayer);
-  if (blockInstantWin !== null) return blockInstantWin;
+  if (config.is3D) {
+    const crossLayerLines = generateCrossLayerLines(config);
 
-  // --- PRIORITY 3: WIN MATCH (via 2nd Layer Win) ---
-  // If AI already has 1 layer, try to win another active layer
-  const activeLayers = [0, 1, 2].filter(i => layerWinners[i].winner === null);
-  const aiLayerWins = layerWinners.filter(l => l.winner === aiPlayer).length;
-  const humanLayerWins = layerWinners.filter(l => l.winner === humanPlayer).length;
+    const instantWin = findWinningMoveInLines(crossLayerLines, aiPlayer);
+    if (instantWin !== null) return instantWin;
 
-  if (aiLayerWins >= 1) {
-    for (const layerIdx of activeLayers) {
-       const winLayer = findWinningMoveInLines(LAYER_LINES[layerIdx], aiPlayer);
-       if (winLayer !== null) return winLayer;
+    const blockInstantWin = findWinningMoveInLines(crossLayerLines, humanPlayer);
+    if (blockInstantWin !== null) return blockInstantWin;
+
+    const activeLayers = Array.from({ length: config.layerCount }, (_, i) => i).filter(
+      (i) => layerWinners[i].winner === null
+    );
+    const aiLayerWins = layerWinners.filter((l) => l.winner === aiPlayer).length;
+    const humanLayerWins = layerWinners.filter((l) => l.winner === humanPlayer).length;
+    const layersNeeded = Math.max(1, config.matchWinThreshold - 1);
+
+    if (aiLayerWins >= layersNeeded) {
+      for (const layerIdx of activeLayers) {
+        const winLayer = findWinningMoveInLines(
+          generateLayerLines(config, layerIdx),
+          aiPlayer
+        );
+        if (winLayer !== null) return winLayer;
+      }
     }
-  }
 
-  // --- PRIORITY 4: BLOCK MATCH WIN (Prevent Human from getting 2nd layer) ---
-  if (humanLayerWins >= 1) {
-    for (const layerIdx of activeLayers) {
-       const blockLayer = findWinningMoveInLines(LAYER_LINES[layerIdx], humanPlayer);
-       if (blockLayer !== null) return blockLayer;
+    if (humanLayerWins >= layersNeeded) {
+      for (const layerIdx of activeLayers) {
+        const blockLayer = findWinningMoveInLines(
+          generateLayerLines(config, layerIdx),
+          humanPlayer
+        );
+        if (blockLayer !== null) return blockLayer;
+      }
     }
+
+    for (const layerIdx of activeLayers) {
+      const winLayer = findWinningMoveInLines(
+        generateLayerLines(config, layerIdx),
+        aiPlayer
+      );
+      if (winLayer !== null) return winLayer;
+    }
+
+    for (const layerIdx of activeLayers) {
+      const blockLayer = findWinningMoveInLines(
+        generateLayerLines(config, layerIdx),
+        humanPlayer
+      );
+      if (blockLayer !== null) return blockLayer;
+    }
+  } else {
+    const boardLines = generateLayerLines(config, 0);
+    const winMove = findWinningMoveInLines(boardLines, aiPlayer);
+    if (winMove !== null) return winMove;
+    const blockMove = findWinningMoveInLines(boardLines, humanPlayer);
+    if (blockMove !== null) return blockMove;
   }
 
-  // --- PRIORITY 5: WIN ANY LAYER ---
-  for (const layerIdx of activeLayers) {
-    const winLayer = findWinningMoveInLines(LAYER_LINES[layerIdx], aiPlayer);
-    if (winLayer !== null) return winLayer;
-  }
-
-  // --- PRIORITY 6: BLOCK ANY LAYER ---
-  for (const layerIdx of activeLayers) {
-    const blockLayer = findWinningMoveInLines(LAYER_LINES[layerIdx], humanPlayer);
-    if (blockLayer !== null) return blockLayer;
-  }
-
-  // --- PRIORITY 7: STRATEGIC MOVES ---
-  
-  // Center of the cube (most valuable spot for cross-layer)
-  if (isValidMove(13)) return 13;
-
-  // Centers of layers
-  const centers = [4, 22]; // 4 is center of layer 0, 22 is center of layer 2. 13 is center of layer 1 (already checked)
-  for (const c of centers) {
+  for (const c of getStrategicCenters(config)) {
     if (isValidMove(c)) return c;
   }
 
-  // Corners of the cube (Indices: 0, 2, 6, 8, 18, 20, 24, 26)
-  const corners = [0, 2, 6, 8, 18, 20, 24, 26];
-  const availableCorners = corners.filter(c => isValidMove(c));
-  if (availableCorners.length > 0) {
-    return availableCorners[Math.floor(Math.random() * availableCorners.length)];
+  const corners = getCubeCorners(config).filter((c) => isValidMove(c));
+  if (corners.length > 0) {
+    return corners[Math.floor(Math.random() * corners.length)];
   }
 
-  // Random fallback
   const allMoves: number[] = [];
-  for (let i = 0; i < 27; i++) {
+  for (let i = 0; i < config.cellCount; i++) {
     if (isValidMove(i)) allMoves.push(i);
   }
 

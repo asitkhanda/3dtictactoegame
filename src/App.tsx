@@ -1,10 +1,17 @@
 import React from 'react';
-import { Game3D } from './components/Game3D';
+import { Agentation } from 'agentation';
+import { GameBoard } from './components/GameBoard';
+import { Toaster } from './components/ui/sonner';
+import { TooltipProvider } from './components/ui/tooltip';
 
 export default function App() {
   return (
-    <div className="w-full h-screen bg-black overflow-hidden">
-      <Game3D />
-    </div>
+    <TooltipProvider delayDuration={300}>
+      <div className="min-h-screen w-full bg-background text-foreground antialiased">
+        <GameBoard />
+        <Toaster position="top-center" richColors />
+        {import.meta.env.DEV && <Agentation />}
+      </div>
+    </TooltipProvider>
   );
 }
