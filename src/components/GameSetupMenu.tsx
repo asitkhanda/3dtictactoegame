@@ -1,16 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { toast } from 'sonner@2.0.3';
-import { Bot, Users, Box, Layers, Sparkles, ChevronRight, Info } from 'lucide-react';
+import { Bot, Users, ChevronRight, Info } from 'lucide-react';
 import {
   BoardSize,
-  ViewMode,
   GameMode,
   createGameConfig,
   getRulesPreview,
-  KONAMI_SEQUENCE,
-  KONAMI_STORAGE_KEY,
+  DEFAULT_BOARD_SIZE,
+  KONAMI_BOARD_SIZES,
 } from '../utils/gameConfig';
+import { useKonamiUnlock } from '../hooks/useKonamiUnlock';
 import { cn } from '../lib/utils';
 import { Badge } from './ui/badge';
 import { Label } from './ui/label';
@@ -25,12 +24,11 @@ import {
 } from './ui/card';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
+import { ThemeToggle } from './ThemeToggle';
 
 interface GameSetupMenuProps {
-  onStart: (size: BoardSize, viewMode: ViewMode, mode: GameMode) => void;
+  onStart: (size: BoardSize, mode: GameMode) => void;
 }
-
-const VISIBLE_SIZES: BoardSize[] = [2, 3, 4, 5, 6, 7, 8];
 
 interface ModeCardProps {
   icon: React.ReactNode;
@@ -88,55 +86,22 @@ function ModeCard({ icon, title, subtitle, onClick, variant = 'secondary' }: Mod
 }
 
 export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
-  const [selectedSize, setSelectedSize] = useState<BoardSize>(3);
-  const [viewMode, setViewMode] = useState<ViewMode>('3D');
-  const [konamiUnlocked, setKonamiUnlocked] = useState(() => {
-    try {
-      return sessionStorage.getItem(KONAMI_STORAGE_KEY) === '1';
-    } catch {
-      return false;
-    }
-  });
-  const [konamiIndex, setKonamiIndex] = useState(0);
+  const [selectedSize, setSelectedSize] = useState<BoardSize>(DEFAULT_BOARD_SIZE);
+  const {
+    konamiUnlocked,
+    handleKonamiTouchStart,
+    handleKonamiTouchEnd,
+    handleKonamiButtonTap,
+  } = useKonamiUnlock();
 
-  const config = createGameConfig(selectedSize, viewMode);
+  const config = createGameConfig(selectedSize, '3D');
   const rulesPreview = getRulesPreview(config);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const expected = KONAMI_SEQUENCE[konamiIndex];
-      if (e.code === expected) {
-        const next = konamiIndex + 1;
-        if (next === KONAMI_SEQUENCE.length) {
-          setKonamiUnlocked(true);
-          setKonamiIndex(0);
-          try {
-            sessionStorage.setItem(KONAMI_STORAGE_KEY, '1');
-          } catch {
-            /* ignore */
-          }
-          toast('You found the void.', {
-            description: '1×1 board size unlocked.',
-            icon: <Sparkles className="size-4 text-violet-400" />,
-          });
-        } else {
-          setKonamiIndex(next);
-        }
-      } else if (e.code === KONAMI_SEQUENCE[0]) {
-        setKonamiIndex(1);
-      } else {
-        setKonamiIndex(0);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [konamiIndex]);
-
-  const sizes: BoardSize[] = konamiUnlocked ? [1, ...VISIBLE_SIZES] : VISIBLE_SIZES;
 
   return (
     <div className="relative flex min-h-dvh w-full items-center justify-center overflow-y-auto bg-background px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:py-10">
+      <div className="absolute top-4 right-4 z-20">
+        <ThemeToggle />
+      </div>
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-500/10 via-background to-background"
@@ -152,8 +117,12 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
         transition={{ duration: 0.45, ease: 'easeOut' }}
         className="relative z-10 w-full max-w-md sm:max-w-lg"
       >
-        <Card className="glass-elevated rounded-2xl border-border/40">
-          <CardHeader className="space-y-3 text-center">
+        <Card className="glass-elevated relative rounded-2xl border-border/40">
+          <CardHeader
+            className="relative touch-none space-y-3 text-center select-none"
+            onTouchStart={handleKonamiTouchStart}
+            onTouchEnd={handleKonamiTouchEnd}
+          >
             <div className="flex items-center justify-center gap-2">
               <Badge
                 variant="secondary"
@@ -162,8 +131,8 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
                 Spatial Strategy
               </Badge>
               {konamiUnlocked && (
-                <Badge className="border-violet-500/30 bg-violet-500/10 text-violet-300">
-                  Void unlocked
+                <Badge className="border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-300">
+                  Secret boards
                 </Badge>
               )}
             </div>
@@ -173,89 +142,64 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
             <CardDescription className="text-base">
               Classic tic-tac-toe, extended across layers and dimensions.
             </CardDescription>
+            {!konamiUnlocked && (
+              <>
+                <button
+                  type="button"
+                  aria-hidden
+                  tabIndex={-1}
+                  className="absolute bottom-0 left-0 z-10 size-12 opacity-0"
+                  onClick={() => handleKonamiButtonTap('KeyB')}
+                />
+                <button
+                  type="button"
+                  aria-hidden
+                  tabIndex={-1}
+                  className="absolute right-0 bottom-0 z-10 size-12 opacity-0"
+                  onClick={() => handleKonamiButtonTap('KeyA')}
+                />
+              </>
+            )}
           </CardHeader>
 
           <CardContent className="space-y-6">
-            <div className="space-y-3">
-              <Label className="text-muted-foreground text-xs uppercase tracking-wider">
-                Board size
-              </Label>
-              <ToggleGroup
-                type="single"
-                value={String(selectedSize)}
-                onValueChange={(v) => v && setSelectedSize(Number(v) as BoardSize)}
-                className="flex w-full flex-wrap justify-center gap-2"
-                variant="outline"
-              >
-                {sizes.map((size) => (
-                  <ToggleGroupItem
-                    key={size}
-                    value={String(size)}
-                    className={cn(
-                      'size-11 shrink-0 flex-none rounded-xl border p-0 text-sm font-semibold transition-all duration-200',
-                      'first:rounded-xl last:rounded-xl',
-                      'data-[variant=outline]:border data-[variant=outline]:border-l',
-                      'data-[state=on]:ring-2 data-[state=on]:ring-orange-500/40',
-                      'data-[state=on]:border-orange-500/50 data-[state=on]:bg-orange-500/15 data-[state=on]:text-orange-200',
-                      size === 1 &&
-                        'data-[state=on]:ring-violet-400/40 data-[state=on]:border-violet-400 data-[state=on]:bg-violet-500/15 data-[state=on]:text-violet-200'
-                    )}
-                  >
-                    {size}×{size}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            </div>
-
-            <div className="space-y-3">
-              <Label className="text-muted-foreground text-xs uppercase tracking-wider">
-                View mode
-              </Label>
-              <ToggleGroup
-                type="single"
-                value={viewMode}
-                onValueChange={(v) => v && setViewMode(v as ViewMode)}
-                className="grid w-full grid-cols-2 gap-2 rounded-xl bg-surface-container p-1"
-                variant="outline"
-              >
-                <ToggleGroupItem
-                  value="2D"
-                  className={cn(
-                    'h-11 flex-1 gap-2 rounded-lg border-0 transition-all duration-200',
-                    'first:rounded-lg last:rounded-lg',
-                    'data-[state=on]:bg-orange-500/15 data-[state=on]:text-orange-200',
-                    'data-[state=on]:ring-2 data-[state=on]:ring-orange-500/40',
-                    'data-[state=off]:bg-transparent data-[state=off]:hover:bg-white/5'
-                  )}
+            {konamiUnlocked && (
+              <div className="space-y-3">
+                <Label className="text-muted-foreground text-xs uppercase tracking-wider">
+                  Board size
+                </Label>
+                <ToggleGroup
+                  type="single"
+                  value={String(selectedSize)}
+                  onValueChange={(v) => v && setSelectedSize(Number(v) as BoardSize)}
+                  className="grid w-full grid-cols-4 gap-2 sm:flex sm:flex-wrap sm:justify-center"
+                  variant="outline"
                 >
-                  <Layers className="size-4" />
-                  2D Flat
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="3D"
-                  className={cn(
-                    'h-11 flex-1 gap-2 rounded-lg border-0 transition-all duration-200',
-                    'first:rounded-lg last:rounded-lg',
-                    'data-[state=on]:bg-orange-500/15 data-[state=on]:text-orange-200',
-                    'data-[state=on]:ring-2 data-[state=on]:ring-orange-500/40',
-                    'data-[state=off]:bg-transparent data-[state=off]:hover:bg-white/5'
-                  )}
-                >
-                  <Box className="size-4" />
-                  3D Stack
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
+                  {KONAMI_BOARD_SIZES.map((size) => (
+                    <ToggleGroupItem
+                      key={size}
+                      value={String(size)}
+                      className={cn(
+                        'size-10 shrink-0 flex-none rounded-xl border p-0 text-xs font-semibold transition-all duration-200 sm:size-11 sm:text-sm',
+                        'first:rounded-xl last:rounded-xl',
+                        'data-[variant=outline]:border data-[variant=outline]:border-l',
+                        'data-[state=on]:ring-2 data-[state=on]:ring-orange-500/40',
+                        'data-[state=on]:border-orange-500/50 data-[state=on]:bg-orange-500/15 data-[state=on]:text-orange-700 dark:data-[state=on]:text-orange-200',
+                        size <= 2 &&
+                          'data-[state=on]:ring-violet-400/40 data-[state=on]:border-violet-400 data-[state=on]:bg-violet-500/15 data-[state=on]:text-violet-700 dark:data-[state=on]:text-violet-200'
+                      )}
+                    >
+                      {size}×{size}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              </div>
+            )}
 
             <Alert className="glass-surface rounded-xl border-border/40">
               <Info className="size-4" />
               <AlertTitle className="text-sm">How to win</AlertTitle>
               <AlertDescription>{rulesPreview}</AlertDescription>
-              {selectedSize >= 6 && (
-                <AlertDescription className="text-muted-foreground mt-2 text-xs">
-                  PVE uses strategic AI — not perfect play on large boards.
-                </AlertDescription>
-              )}
             </Alert>
           </CardContent>
 
@@ -267,13 +211,13 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
               icon={<Bot className="size-5" />}
               title="Single Player"
               subtitle="Vs. strategic AI"
-              onClick={() => onStart(selectedSize, viewMode, 'PVE')}
+              onClick={() => onStart(selectedSize, 'PVE')}
             />
             <ModeCard
               icon={<Users className="size-5 text-violet-400" />}
               title="Two Player"
               subtitle="Local pass-and-play"
-              onClick={() => onStart(selectedSize, viewMode, 'PVP')}
+              onClick={() => onStart(selectedSize, 'PVP')}
             />
           </CardFooter>
         </Card>

@@ -1,6 +1,10 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  CAMERA_PRESETS,
+  PRESET_TRANSITION_MS,
+  type CameraPresetId,
+} from '../utils/cameraPresets';
 
-const INITIAL_ROTATION = { x: -25, y: 45 };
 const MIN_ZOOM = 0.4;
 const MAX_ZOOM = 2.5;
 const ZOOM_STEP = 0.15;
@@ -12,6 +16,14 @@ interface UseBoardViewportOptions {
   rotationSensitivity?: number;
 }
 
+function lerp(a: number, b: number, t: number) {
+  return a + (b - a) * t;
+}
+
+function easeOutCubic(t: number) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
 export function useBoardViewport({
   baseScale,
   is3D,
@@ -21,13 +33,15 @@ export function useBoardViewport({
   const viewportRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
 
-  const rotationRef = useRef(INITIAL_ROTATION);
+  const rotationRef = useRef(CAMERA_PRESETS.default.rotation);
   const zoomRef = useRef(1);
   const isDraggingRef = useRef(false);
   const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
   const pinchRef = useRef<{ distance: number; zoom: number } | null>(null);
   const rafRef = useRef<number | null>(null);
   const rotationSensitivityRef = useRef(rotationSensitivity);
+  const transitionRafRef = useRef<number | null>(null);
+  const [activePreset, setActivePreset] = useState<CameraPresetId | null>('default');
 
   useEffect(() => {
     rotationSensitivityRef.current = rotationSensitivity;
@@ -66,6 +80,7 @@ export function useBoardViewport({
   useEffect(() => {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      if (transitionRafRef.current !== null) cancelAnimationFrame(transitionRafRef.current);
     };
   }, []);
 
@@ -87,15 +102,75 @@ export function useBoardViewport({
     setZoom(zoomRef.current - ZOOM_STEP);
   }, [setZoom]);
 
+  const cancelTransition = useCallback(() => {
+    if (transitionRafRef.current !== null) {
+      cancelAnimationFrame(transitionRafRef.current);
+      transitionRafRef.current = null;
+    }
+  }, []);
+
+  const setView = useCallback(
+    (presetId: CameraPresetId, options?: { resetZoom?: boolean }) => {
+      const preset = CAMERA_PRESETS[presetId];
+      if (!preset) return;
+
+      cancelTransition();
+
+      const start = { ...rotationRef.current };
+      const target = { ...preset.rotation };
+      const startZoom = zoomRef.current;
+      const targetZoom = options?.resetZoom !== false && presetId === 'default' ? 1 : zoomRef.current;
+      const startTime = performance.now();
+
+      setActivePreset(presetId);
+
+      const animate = (now: number) => {
+        const elapsed = now - startTime;
+        const t = Math.min(1, elapsed / PRESET_TRANSITION_MS);
+        const eased = easeOutCubic(t);
+
+        rotationRef.current = {
+          x: lerp(start.x, target.x, eased),
+          y: lerp(start.y, target.y, eased),
+        };
+
+        if (options?.resetZoom !== false && presetId === 'default') {
+          zoomRef.current = lerp(startZoom, targetZoom, eased);
+        }
+
+        applyRotation();
+        applyScale();
+
+        if (t < 1) {
+          transitionRafRef.current = requestAnimationFrame(animate);
+        } else {
+          rotationRef.current = { ...target };
+          if (options?.resetZoom !== false && presetId === 'default') {
+            zoomRef.current = targetZoom;
+          }
+          applyRotation();
+          applyScale();
+          transitionRafRef.current = null;
+        }
+      };
+
+      transitionRafRef.current = requestAnimationFrame(animate);
+    },
+    [applyRotation, applyScale, cancelTransition]
+  );
+
   const resetView = useCallback(() => {
-    rotationRef.current = { ...INITIAL_ROTATION };
-    zoomRef.current = 1;
-    applyRotation();
-    applyScale();
-  }, [applyRotation, applyScale]);
+    setView('default');
+  }, [setView]);
+
+  const clearActivePreset = useCallback(() => {
+    setActivePreset(null);
+  }, []);
 
   const applyRotationDelta = useCallback(
     (deltaX: number, deltaY: number) => {
+      cancelTransition();
+      clearActivePreset();
       const factor = rotationSensitivityRef.current;
       rotationRef.current = {
         x: rotationRef.current.x - deltaY * factor,
@@ -103,7 +178,7 @@ export function useBoardViewport({
       };
       scheduleApply();
     },
-    [scheduleApply]
+    [scheduleApply, cancelTransition, clearActivePreset]
   );
 
   const rotateBy = useCallback(
@@ -237,6 +312,8 @@ export function useBoardViewport({
     viewportRef,
     boardRef,
     resetView,
+    setView,
+    activePreset,
     zoomIn,
     zoomOut,
     rotateBy,

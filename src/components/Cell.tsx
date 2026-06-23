@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '../lib/utils';
+import { getCellSurfaceStyles } from '../utils/boardTranslucency';
 import { motion } from 'motion/react';
 
 interface CellProps {
@@ -10,6 +11,8 @@ interface CellProps {
   cellSize: number;
   pieceStackCount?: number;
   cellIndex?: number;
+  cellOpacity?: number;
+  isLastMove?: boolean;
 }
 
 function PieceX({
@@ -147,8 +150,11 @@ export function Cell({
   cellSize,
   pieceStackCount = 12,
   cellIndex,
+  cellOpacity = 15,
+  isLastMove = false,
 }: CellProps) {
   const isInteractive = !disabled && value === null;
+  const showLastMoveGlow = isLastMove && !isWinningCell;
   const label =
     cellIndex !== undefined
       ? value
@@ -166,9 +172,11 @@ export function Cell({
       aria-label={label}
       className={cn(
         'group relative flex items-center justify-center rounded-md border p-0 transition-all duration-200',
-        'border-border/50 bg-muted/20',
+        cellOpacity > 0 && !isWinningCell && 'border-border/50',
+        cellOpacity <= 0 && !isWinningCell && 'border-transparent',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-        isInteractive && 'cursor-pointer hover:border-border hover:bg-muted/40 active:scale-95',
+        isInteractive && cellOpacity > 0 && 'cursor-pointer hover:border-border active:scale-95',
+        isInteractive && cellOpacity <= 0 && 'cursor-pointer active:scale-95',
         disabled && !isWinningCell && 'cursor-default opacity-90',
         isWinningCell && value === 'X' && 'border-orange-500/40 bg-orange-500/10',
         isWinningCell && value === 'O' && 'border-violet-500/40 bg-violet-500/10'
@@ -177,9 +185,33 @@ export function Cell({
         width: cellSize,
         height: cellSize,
         transformStyle: 'preserve-3d',
+        ...getCellSurfaceStyles(cellOpacity, isWinningCell),
       }}
     >
-      <div className="pointer-events-none absolute inset-0 rounded-md bg-gradient-to-br from-white/5 to-transparent" />
+      {cellOpacity > 0 && (
+        <div className="pointer-events-none absolute inset-0 rounded-md bg-gradient-to-br from-white/5 to-transparent" />
+      )}
+      {showLastMoveGlow && (
+        <motion.div
+          className={cn(
+            'pointer-events-none absolute inset-0 rounded-md',
+            value === 'X' && 'ring-2 ring-orange-400/70',
+            value === 'O' && 'ring-2 ring-violet-400/70',
+            !value && 'ring-2 ring-primary/50'
+          )}
+          initial={{ opacity: 0, scale: 0.92 }}
+          animate={{
+            opacity: [0, 1, 1, 0],
+            scale: [0.92, 1, 1, 1],
+            boxShadow: value === 'X'
+              ? ['0 0 0px transparent', '0 0 20px var(--player-x-glow)', '0 0 20px var(--player-x-glow)', '0 0 0px transparent']
+              : value === 'O'
+                ? ['0 0 0px transparent', '0 0 20px var(--player-o-glow)', '0 0 20px var(--player-o-glow)', '0 0 0px transparent']
+                : ['0 0 0px transparent', '0 0 12px rgba(128,128,128,0.4)', '0 0 12px rgba(128,128,128,0.4)', '0 0 0px transparent'],
+          }}
+          transition={{ duration: 1.5, times: [0, 0.15, 0.7, 1], ease: 'easeOut' }}
+        />
+      )}
       {value === 'X' && (
         <PieceX isWinning={isWinningCell} size={cellSize} stackCount={pieceStackCount} />
       )}

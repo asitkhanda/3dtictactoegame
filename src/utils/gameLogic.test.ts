@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createGameConfig } from './gameConfig';
+import { createGameConfig, getKonamiSwipeStep } from './gameConfig';
 import {
   applyMove,
   checkCrossLayerWinner,
@@ -14,7 +14,21 @@ import {
 const config3D = createGameConfig(3, '3D');
 const config2D4 = createGameConfig(4, '2D');
 const config3D4 = createGameConfig(4, '3D');
-const config1 = createGameConfig(1, '2D');
+const config1 = createGameConfig(1, '3D');
+const config2x3D = createGameConfig(2, '3D');
+
+describe('konami swipe mapping', () => {
+  it('maps dominant swipes to arrow steps', () => {
+    expect(getKonamiSwipeStep(0, -50)).toBe('ArrowUp');
+    expect(getKonamiSwipeStep(0, 50)).toBe('ArrowDown');
+    expect(getKonamiSwipeStep(-50, 0)).toBe('ArrowLeft');
+    expect(getKonamiSwipeStep(50, 0)).toBe('ArrowRight');
+  });
+
+  it('ignores swipes below threshold', () => {
+    expect(getKonamiSwipeStep(10, 10)).toBeNull();
+  });
+});
 
 describe('3x3 regression', () => {
   it('generates 8 lines per layer', () => {
@@ -111,6 +125,15 @@ describe('1x1 easter egg', () => {
     const result = applyMove(config1, board, layerWinners, 0, true)!;
     expect(result.winner).toBe('X');
     expect(result.winningLine).toEqual([0]);
+  });
+});
+
+describe('2x2 3D easter egg', () => {
+  it('creates 2-layer 3D config', () => {
+    expect(config2x3D.layerCount).toBe(2);
+    expect(config2x3D.cellCount).toBe(8);
+    expect(config2x3D.matchWinThreshold).toBe(1);
+    expect(config2x3D.is3D).toBe(true);
   });
 });
 

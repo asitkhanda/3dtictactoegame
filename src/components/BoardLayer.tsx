@@ -1,7 +1,9 @@
 import React from 'react';
 import { Cell } from './Cell';
+import { LastMoveBoardGlow } from './LastMoveBoardGlow';
 import { BoardState } from '../utils/gameLogic';
 import { cn } from '../lib/utils';
+import { getBoardLayerStyles } from '../utils/boardTranslucency';
 
 interface BoardLayerProps {
   layerIndex: number;
@@ -18,6 +20,9 @@ interface BoardLayerProps {
   winningLine: number[] | null;
   disabled: boolean;
   showLabel?: boolean;
+  layerOpacity?: number;
+  cellOpacity?: number;
+  lastMoveIndex?: number | null;
 }
 
 export function BoardLayer({
@@ -35,6 +40,9 @@ export function BoardLayer({
   winningLine,
   disabled,
   showLabel = true,
+  layerOpacity = 50,
+  cellOpacity = 15,
+  lastMoveIndex = null,
 }: BoardLayerProps) {
   const startIndex = layerIndex * cellsPerLayer;
   const cells = Array.from({ length: cellsPerLayer }, (_, i) => {
@@ -47,12 +55,17 @@ export function BoardLayer({
   });
 
   const zOffset = (layerIndex - (totalLayers - 1) / 2) * spacingZ;
+  const isLastMoveLayer =
+    lastMoveIndex !== null &&
+    lastMoveIndex >= startIndex &&
+    lastMoveIndex < startIndex + cellsPerLayer;
+  const lastMovePlayer = isLastMoveLayer ? board[lastMoveIndex] : null;
 
   return (
     <div
       className={cn(
-        'absolute rounded-xl border border-border/60 bg-card/70 shadow-xl backdrop-blur-sm',
-        'ring-1 ring-white/5 transition-all duration-500'
+        'absolute rounded-xl border transition-all duration-500',
+        layerOpacity >= 25 && 'ring-1 ring-white/5'
       )}
       style={{
         width: boardPx,
@@ -60,8 +73,10 @@ export function BoardLayer({
         padding: Math.max(8, gapPx),
         transform: `translate(-50%, -50%) translateZ(${zOffset}px)`,
         transformStyle: 'preserve-3d',
+        ...getBoardLayerStyles(layerOpacity),
       }}
     >
+      {isLastMoveLayer && <LastMoveBoardGlow player={lastMovePlayer} />}
       {showLabel && totalLayers > 1 && (
         <div className="text-muted-foreground absolute -top-6 left-1/2 hidden -translate-x-1/2 items-center gap-1.5 select-none pointer-events-none sm:flex">
           <span className="font-mono text-[10px] font-medium tracking-widest">
@@ -89,6 +104,8 @@ export function BoardLayer({
             disabled={disabled || cell.value !== null}
             cellSize={cellPx}
             pieceStackCount={pieceStackCount}
+            cellOpacity={cellOpacity}
+            isLastMove={cell.index === lastMoveIndex}
           />
         ))}
       </div>
