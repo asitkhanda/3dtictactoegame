@@ -1,6 +1,7 @@
 import React from 'react';
 import { ThemeProvider } from 'next-themes';
 import { Agentation } from 'agentation';
+import { Analytics } from '@vercel/analytics/react';
 import { GameBoard } from './components/GameBoard';
 import { Toaster } from './components/ui/sonner';
 import { TooltipProvider } from './components/ui/tooltip';
@@ -13,6 +14,7 @@ export default function App() {
           <GameBoard />
           <Toaster position="top-center" richColors />
           {import.meta.env.DEV && <Agentation endpoint="http://localhost:4747" />}
+          <Analytics />
         </div>
       </TooltipProvider>
     </ThemeProvider>
