@@ -2,6 +2,9 @@ export type BoardSize = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 export type ViewMode = '2D' | '3D';
 export type GameMode = 'PVP' | 'PVE';
 
+export const DEFAULT_BOARD_SIZE: BoardSize = 3;
+export const KONAMI_BOARD_SIZES: BoardSize[] = [1, 2, 3, 4, 5, 6, 7, 8];
+
 export interface VisualScale {
   boardPx: number;
   cellPx: number;
@@ -88,5 +91,21 @@ export const KONAMI_SEQUENCE = [
   'KeyB',
   'KeyA',
 ] as const;
+
+export type KonamiStep = (typeof KONAMI_SEQUENCE)[number];
+
+export function getKonamiSwipeStep(
+  deltaX: number,
+  deltaY: number,
+  threshold = 40
+): KonamiStep | null {
+  const absX = Math.abs(deltaX);
+  const absY = Math.abs(deltaY);
+  if (absX < threshold && absY < threshold) return null;
+  if (absX > absY) {
+    return deltaX > 0 ? 'ArrowRight' : 'ArrowLeft';
+  }
+  return deltaY > 0 ? 'ArrowDown' : 'ArrowUp';
+}
 
 export const KONAMI_STORAGE_KEY = '3dttt-konami-unlocked';

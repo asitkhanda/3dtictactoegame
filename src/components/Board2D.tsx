@@ -1,8 +1,10 @@
 import React from 'react';
 import { Cell } from './Cell';
+import { LastMoveBoardGlow } from './LastMoveBoardGlow';
 import { BoardState } from '../utils/gameLogic';
 import { cn } from '../lib/utils';
 import { GameConfig } from '../utils/gameConfig';
+import { getBoardLayerStyles } from '../utils/boardTranslucency';
 
 interface Board2DProps {
   config: GameConfig;
@@ -10,9 +12,21 @@ interface Board2DProps {
   onCellClick: (index: number) => void;
   winningLine: number[] | null;
   disabled: boolean;
+  layerOpacity?: number;
+  cellOpacity?: number;
+  lastMoveIndex?: number | null;
 }
 
-export function Board2D({ config, board, onCellClick, winningLine, disabled }: Board2DProps) {
+export function Board2D({
+  config,
+  board,
+  onCellClick,
+  winningLine,
+  disabled,
+  layerOpacity = 50,
+  cellOpacity = 15,
+  lastMoveIndex = null,
+}: Board2DProps) {
   const { size, cellsPerLayer, visual } = config;
   const { boardPx, cellPx, gapPx, pieceStackCount } = visual;
 
@@ -22,19 +36,25 @@ export function Board2D({ config, board, onCellClick, winningLine, disabled }: B
     isWinning: winningLine?.includes(i) ?? false,
   }));
 
+  const lastMovePlayer =
+    lastMoveIndex !== null && lastMoveIndex < cellsPerLayer ? board[lastMoveIndex] : null;
+  const showLayerGlow = lastMoveIndex !== null && lastMoveIndex < cellsPerLayer;
+
   return (
     <div className="flex h-full w-full items-center justify-center px-4">
       <div
         className={cn(
-          'rounded-xl border border-border/60 bg-card/70 shadow-xl backdrop-blur-sm',
-          'ring-1 ring-white/5'
+          'relative rounded-xl border',
+          layerOpacity >= 25 && 'ring-1 ring-white/5'
         )}
         style={{
           width: boardPx,
           height: boardPx,
           padding: Math.max(8, gapPx),
+          ...getBoardLayerStyles(layerOpacity),
         }}
       >
+        {showLayerGlow && <LastMoveBoardGlow player={lastMovePlayer} />}
         <div
           className="h-full w-full"
           style={{
@@ -53,6 +73,8 @@ export function Board2D({ config, board, onCellClick, winningLine, disabled }: B
               disabled={disabled || cell.value !== null}
               cellSize={cellPx}
               pieceStackCount={pieceStackCount}
+              cellOpacity={cellOpacity}
+              isLastMove={cell.index === lastMoveIndex}
             />
           ))}
         </div>

@@ -8,7 +8,6 @@ import {
 } from '../utils/gameLogic';
 import {
   BoardSize,
-  ViewMode,
   GameMode,
   GameConfig,
   createGameConfig,
@@ -22,6 +21,8 @@ import { GameSetupMenu } from './GameSetupMenu';
 import { useBoardScale } from '../hooks/useBoardScale';
 import { useBoardViewport } from '../hooks/useBoardViewport';
 import { useRotationSensitivity } from '../hooks/useRotationSensitivity';
+import { useBoardTranslucency } from '../hooks/useBoardTranslucency';
+import { layerOpacityToCellAlpha } from '../utils/boardTranslucency';
 import { useIsMobile } from './ui/use-mobile';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -44,6 +45,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 import { cn } from '../lib/utils';
+import { ThemeToggle } from './ThemeToggle';
 
 const GAME_END_TOAST_ID = 'game-end';
 
@@ -71,6 +73,7 @@ export function GameBoard() {
   const [winningLine, setWinningLine] = useState<number[] | null>(null);
   const [winner, setWinner] = useState<'X' | 'O' | null>(null);
   const [draw, setDraw] = useState(false);
+  const [lastMoveIndex, setLastMoveIndex] = useState<number | null>(null);
 
   const boardScale = useBoardScale({
     boardPx: config?.visual.boardPx ?? 300,
@@ -85,7 +88,9 @@ export function GameBoard() {
   const showCameraJoystick = config?.is3D && !isMobile;
   const showZoomPanel = showZoomControls && !config?.is3D;
   const { sensitivity, setSensitivity, rotationMultiplier } = useRotationSensitivity();
-  const { viewportRef, boardRef, resetView, zoomIn, zoomOut, rotateBy, viewportHandlers } =
+  const { translucency, setTranslucency } = useBoardTranslucency();
+  const cellOpacity = layerOpacityToCellAlpha(translucency);
+  const { viewportRef, boardRef, resetView, setView, activePreset, zoomIn, zoomOut, rotateBy, viewportHandlers } =
     useBoardViewport({
       baseScale: boardScale,
       is3D: config?.is3D ?? false,
@@ -104,6 +109,7 @@ export function GameBoard() {
     setDraw(false);
     setCrossLayerWinningLine(null);
     setWinningLine(null);
+    setLastMoveIndex(null);
     resetView();
   }, [config, resetView]);
 
@@ -115,6 +121,12 @@ export function GameBoard() {
   useEffect(() => {
     if (config) resetGameState();
   }, [config, resetGameState]);
+
+  useEffect(() => {
+    if (lastMoveIndex === null) return;
+    const timer = setTimeout(() => setLastMoveIndex(null), 1500);
+    return () => clearTimeout(timer);
+  }, [lastMoveIndex]);
 
   const makeMove = useCallback(
     (index: number) => {
@@ -130,6 +142,7 @@ export function GameBoard() {
       setWinner(result.winner);
       setDraw(result.draw);
       setIsXNext(result.isXNext);
+      setLastMoveIndex(index);
     },
     [config, board, layerWinners, isXNext, winner, draw]
   );
@@ -154,8 +167,8 @@ export function GameBoard() {
     [gameMode, isXNext, makeMove]
   );
 
-  const handleStart = (size: BoardSize, viewMode: ViewMode, mode: GameMode) => {
-    setSession({ config: createGameConfig(size, viewMode), gameMode: mode });
+  const handleStart = (size: BoardSize, mode: GameMode) => {
+    setSession({ config: createGameConfig(size, '3D'), gameMode: mode });
   };
 
   const getWinMessage = useCallback(() => {
@@ -265,7 +278,7 @@ export function GameBoard() {
                           {gameMode === 'PVE' ? '1P' : '2P'}
                         </Badge>
                         {config.size === 1 && (
-                          <Badge className="hidden shrink-0 border-violet-500/30 bg-violet-500/10 px-1 py-0 text-[9px] text-violet-300 sm:inline-flex">
+                          <Badge className="hidden shrink-0 border-violet-500/30 bg-violet-500/10 px-1 py-0 text-[9px] text-violet-600 dark:text-violet-300 sm:inline-flex">
                             <Sparkles className="mr-0.5 size-2.5" />
                             Void
                           </Badge>
@@ -302,8 +315,8 @@ export function GameBoard() {
                     className={cn(
                       'shrink-0 px-2 py-0 text-[10px]',
                       isXActive
-                        ? 'border-orange-500/40 bg-orange-500/10 text-orange-300'
-                        : 'border-violet-500/40 bg-violet-500/10 text-violet-300'
+                        ? 'border-orange-500/40 bg-orange-500/10 text-orange-600 dark:text-orange-300'
+                        : 'border-violet-500/40 bg-violet-500/10 text-violet-600 dark:text-violet-300'
                     )}
                   >
                     {isXActive
@@ -332,6 +345,8 @@ export function GameBoard() {
                     <TooltipContent>Reset camera</TooltipContent>
                   </Tooltip>
                 )}
+
+                <ThemeToggle />
               </div>
             </CardHeader>
           </Card>
@@ -392,6 +407,9 @@ export function GameBoard() {
                     }
                     disabled={isLayerDisabled(i)}
                     showLabel={config.layerCount > 1}
+                    layerOpacity={translucency}
+                    cellOpacity={cellOpacity}
+                    lastMoveIndex={lastMoveIndex}
                   />
                 ))}
               </div>
@@ -403,6 +421,9 @@ export function GameBoard() {
               onCellClick={handleCellClick}
               winningLine={highlightLine}
               disabled={!!winner || draw || (gameMode === 'PVE' && !isXNext)}
+              layerOpacity={translucency}
+              cellOpacity={cellOpacity}
+              lastMoveIndex={lastMoveIndex}
             />
           )}
         </div>
@@ -415,6 +436,10 @@ export function GameBoard() {
             onZoomOut={zoomOut}
             sensitivity={sensitivity}
             onSensitivityChange={setSensitivity}
+            translucency={translucency}
+            onTranslucencyChange={setTranslucency}
+            activePreset={activePreset}
+            onPresetSelect={setView}
           />
         )}
 
@@ -448,12 +473,12 @@ function PlayerScore({
     tone === 'x'
       ? {
           active: 'border-orange-500/40 bg-orange-500/10',
-          text: 'text-orange-400',
+          text: 'text-orange-600 dark:text-orange-400',
           dot: 'bg-orange-500',
         }
       : {
           active: 'border-violet-500/40 bg-violet-500/10',
-          text: 'text-violet-400',
+          text: 'text-violet-600 dark:text-violet-400',
           dot: 'bg-violet-500',
         };
 

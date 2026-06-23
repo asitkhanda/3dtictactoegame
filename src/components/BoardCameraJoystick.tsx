@@ -2,6 +2,9 @@ import { useCallback, useRef, useState } from 'react';
 import { ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from './ui/button';
 import { RotationSensitivityControl } from './RotationSensitivityControl';
+import { BoardTranslucencyControl } from './BoardTranslucencyControl';
+import { CameraPresetButtons } from './CameraPresetButtons';
+import type { CameraPresetId } from '../utils/cameraPresets';
 import { cn } from '../lib/utils';
 
 const PAD_SIZE = 88;
@@ -14,6 +17,10 @@ interface BoardCameraJoystickProps {
   onZoomOut: () => void;
   sensitivity?: number;
   onSensitivityChange?: (value: number) => void;
+  translucency?: number;
+  onTranslucencyChange?: (value: number) => void;
+  activePreset?: CameraPresetId | null;
+  onPresetSelect?: (presetId: CameraPresetId) => void;
   zoomOnly?: boolean;
   className?: string;
 }
@@ -24,6 +31,10 @@ export function BoardCameraJoystick({
   onZoomOut,
   sensitivity,
   onSensitivityChange,
+  translucency,
+  onTranslucencyChange,
+  activePreset,
+  onPresetSelect,
   zoomOnly = false,
   className,
 }: BoardCameraJoystickProps) {
@@ -178,11 +189,28 @@ export function BoardCameraJoystick({
         {zoomButtons}
       </div>
 
+      {onPresetSelect && (
+        <CameraPresetButtons
+          activePreset={activePreset ?? null}
+          onPresetSelect={onPresetSelect}
+          className="w-[calc(88px+4rem)]"
+        />
+      )}
+
       {sensitivity !== undefined && onSensitivityChange && (
         <RotationSensitivityControl
           compact
           sensitivity={sensitivity}
           onSensitivityChange={onSensitivityChange}
+          className="w-[calc(88px+4rem)] px-0.5"
+        />
+      )}
+
+      {translucency !== undefined && onTranslucencyChange && (
+        <BoardTranslucencyControl
+          compact
+          translucency={translucency}
+          onTranslucencyChange={onTranslucencyChange}
           className="w-[calc(88px+4rem)] px-0.5"
         />
       )}
