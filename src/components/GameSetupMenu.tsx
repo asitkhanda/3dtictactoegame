@@ -98,7 +98,7 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
         <p className="text-xs arcade-text-muted">
           Made with curiosity by{' '}
           <a
-            href="https://asit.design"
+            href="https://asit.space/"
             target="_blank"
             rel="noreferrer"
             className="underline-offset-4 transition-colors hover:text-[var(--neon-orange)] hover:underline dark:text-white/55"
