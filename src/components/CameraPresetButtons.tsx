@@ -34,8 +34,9 @@ export function CameraPresetButtons({
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  'size-6 min-w-6 px-0 font-mono text-[10px]',
-                  activePreset === id && 'bg-primary/15 text-primary'
+                  'size-7 min-w-7 px-0 font-mono text-xs arcade-text-muted hover:bg-white/10 hover:text-[var(--arcade-fg)] dark:hover:text-white',
+                  activePreset === id &&
+                    'border-[var(--neon-violet)]/40 bg-[var(--neon-violet)]/15 text-[var(--neon-violet)]'
                 )}
                 onClick={(e) => {
                   e.stopPropagation();

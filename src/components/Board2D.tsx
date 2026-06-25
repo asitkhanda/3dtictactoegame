@@ -5,6 +5,7 @@ import { BoardState } from '../utils/gameLogic';
 import { cn } from '../lib/utils';
 import { GameConfig } from '../utils/gameConfig';
 import { getBoardLayerStyles } from '../utils/boardTranslucency';
+import { computeFittedCellPx, getBoardPadding } from '../utils/boardLayout';
 
 interface Board2DProps {
   config: GameConfig;
@@ -39,6 +40,8 @@ export function Board2D({
   const lastMovePlayer =
     lastMoveIndex !== null && lastMoveIndex < cellsPerLayer ? board[lastMoveIndex] : null;
   const showLayerGlow = lastMoveIndex !== null && lastMoveIndex < cellsPerLayer;
+  const padding = getBoardPadding(gapPx);
+  const fittedCellPx = computeFittedCellPx(boardPx, size, gapPx, cellPx);
 
   return (
     <div className="flex h-full w-full items-center justify-center px-4">
@@ -50,7 +53,8 @@ export function Board2D({
         style={{
           width: boardPx,
           height: boardPx,
-          padding: Math.max(8, gapPx),
+          padding,
+          boxSizing: 'border-box',
           ...getBoardLayerStyles(layerOpacity),
         }}
       >
@@ -59,8 +63,10 @@ export function Board2D({
           className="h-full w-full"
           style={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${size}, 1fr)`,
+            gridTemplateColumns: `repeat(${size}, ${fittedCellPx}px)`,
+            gridTemplateRows: `repeat(${size}, ${fittedCellPx}px)`,
             gap: gapPx,
+            placeContent: 'center',
           }}
         >
           {cells.map((cell) => (
@@ -68,10 +74,10 @@ export function Board2D({
               key={cell.index}
               cellIndex={cell.index}
               value={cell.value}
-              onClick={() => onCellClick(cell.index)}
+              onCellClick={onCellClick}
               isWinningCell={cell.isWinning}
               disabled={disabled || cell.value !== null}
-              cellSize={cellPx}
+              cellSize={fittedCellPx}
               pieceStackCount={pieceStackCount}
               cellOpacity={cellOpacity}
               isLastMove={cell.index === lastMoveIndex}
