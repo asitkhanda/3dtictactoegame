@@ -102,13 +102,18 @@ export function BoardCameraJoystick({
     }
   }, []);
 
+  const panelClass = cn(
+    'arcade-panel pointer-events-auto rounded-2xl p-2',
+    className
+  );
+
   const zoomButtons = (
     <div className="flex flex-col gap-0.5">
       <Button
         type="button"
         variant="ghost"
         size="icon"
-        className="size-8"
+        className="size-8 arcade-text-muted hover:bg-white/10 hover:text-[var(--arcade-fg)] dark:hover:text-white"
         onClick={(e) => {
           e.stopPropagation();
           onZoomIn();
@@ -121,7 +126,7 @@ export function BoardCameraJoystick({
         type="button"
         variant="ghost"
         size="icon"
-        className="size-8"
+        className="size-8 arcade-text-muted hover:bg-white/10 hover:text-[var(--arcade-fg)] dark:hover:text-white"
         onClick={(e) => {
           e.stopPropagation();
           onZoomOut();
@@ -135,48 +140,35 @@ export function BoardCameraJoystick({
 
   if (zoomOnly) {
     return (
-      <div
-        className={cn(
-          'glass-surface pointer-events-auto rounded-xl border border-border/40 p-2 shadow-lg',
-          className
-        )}
-        aria-label="Zoom controls"
-      >
+      <div className={panelClass} role="group" aria-label="Zoom controls">
         {zoomButtons}
       </div>
     );
   }
 
   return (
-    <div
-      className={cn(
-        'glass-surface pointer-events-auto flex flex-col gap-2 rounded-xl border border-border/40 p-2 shadow-lg',
-        className
-      )}
-      aria-label="Camera controls"
-    >
+    <div className={cn(panelClass, 'flex flex-col gap-2')} role="group" aria-label="Camera controls">
       <div className="flex items-center gap-1">
         <div
           ref={padRef}
-          className="relative touch-none select-none rounded-full border border-border/50 bg-muted/30"
+          className="relative touch-none select-none rounded-full border border-[var(--game-border)]/60 bg-[var(--game-layer)]/40"
           style={{ width: PAD_SIZE, height: PAD_SIZE }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={endInteraction}
           onPointerCancel={endInteraction}
-          role="slider"
-          aria-label="Rotate board"
-          aria-valuetext="Drag to rotate the board"
+          role="group"
+          aria-label="Rotate board — drag to rotate"
         >
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="size-px rounded-full bg-border/80" />
-            <div className="absolute h-px w-5 bg-border/40" />
-            <div className="absolute h-5 w-px bg-border/40" />
+            <div className="size-px rounded-full bg-[var(--game-border)]" />
+            <div className="absolute h-px w-5 bg-[var(--game-border)]/50" />
+            <div className="absolute h-5 w-px bg-[var(--game-border)]/50" />
           </div>
           <div
             className={cn(
-              'pointer-events-none absolute top-1/2 left-1/2 rounded-full border border-border/60 bg-background/90 shadow-sm',
-              isActive && 'border-primary/40 bg-primary/10'
+              'pointer-events-none absolute top-1/2 left-1/2 rounded-full border border-[var(--game-border)] bg-[var(--game-layer)] shadow-sm',
+              isActive && 'border-[var(--neon-violet)]/50 bg-[var(--neon-violet)]/15'
             )}
             style={{
               width: KNOB_SIZE,

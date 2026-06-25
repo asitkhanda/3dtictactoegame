@@ -26,7 +26,7 @@ export function RotationSensitivityControl({
   if (compact) {
     return (
       <div className={cn('flex min-w-0 flex-col gap-1', className)}>
-        <div className="text-muted-foreground flex items-center justify-between gap-2 text-[9px] uppercase tracking-wide">
+        <div className="font-body flex items-center justify-between gap-2 text-xs uppercase tracking-wide arcade-text-muted">
           <span className="flex items-center gap-1">
             <Gauge className="size-3" />
             Rotate

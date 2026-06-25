@@ -1,6 +1,8 @@
+import { computeBoardOuterPx } from './boardLayout';
+
 export type BoardSize = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 export type ViewMode = '2D' | '3D';
-export type GameMode = 'PVP' | 'PVE';
+export type GameMode = 'PVP' | 'PVE' | 'PVP_ONLINE';
 
 export const DEFAULT_BOARD_SIZE: BoardSize = 3;
 export const KONAMI_BOARD_SIZES: BoardSize[] = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -27,16 +29,28 @@ export interface GameConfig {
   visual: VisualScale;
 }
 
-const VISUAL_SCALES: Record<BoardSize, VisualScale> = {
-  1: { boardPx: 120, cellPx: 120, layerSpacing: 80, pieceStackCount: 8, gapPx: 0 },
-  2: { boardPx: 240, cellPx: 80, layerSpacing: 100, pieceStackCount: 10, gapPx: 8 },
-  3: { boardPx: 300, cellPx: 80, layerSpacing: 160, pieceStackCount: 12, gapPx: 12 },
-  4: { boardPx: 300, cellPx: 68, layerSpacing: 112, pieceStackCount: 10, gapPx: 10 },
-  5: { boardPx: 300, cellPx: 54, layerSpacing: 100, pieceStackCount: 8, gapPx: 8 },
-  6: { boardPx: 300, cellPx: 44, layerSpacing: 88, pieceStackCount: 6, gapPx: 6 },
-  7: { boardPx: 308, cellPx: 38, layerSpacing: 76, pieceStackCount: 6, gapPx: 5 },
-  8: { boardPx: 320, cellPx: 34, layerSpacing: 64, pieceStackCount: 6, gapPx: 4 },
+const VISUAL_CELL_SCALES: Record<BoardSize, Omit<VisualScale, 'boardPx'>> = {
+  1: { cellPx: 120, layerSpacing: 80, pieceStackCount: 8, gapPx: 0 },
+  2: { cellPx: 80, layerSpacing: 100, pieceStackCount: 10, gapPx: 8 },
+  3: { cellPx: 80, layerSpacing: 160, pieceStackCount: 12, gapPx: 12 },
+  4: { cellPx: 68, layerSpacing: 112, pieceStackCount: 10, gapPx: 10 },
+  5: { cellPx: 54, layerSpacing: 100, pieceStackCount: 8, gapPx: 8 },
+  6: { cellPx: 44, layerSpacing: 88, pieceStackCount: 6, gapPx: 6 },
+  7: { cellPx: 38, layerSpacing: 76, pieceStackCount: 6, gapPx: 5 },
+  8: { cellPx: 34, layerSpacing: 64, pieceStackCount: 6, gapPx: 4 },
 };
+
+const VISUAL_SCALES: Record<BoardSize, VisualScale> = Object.fromEntries(
+  (Object.entries(VISUAL_CELL_SCALES) as [BoardSize, Omit<VisualScale, 'boardPx'>][]).map(
+    ([size, scale]) => [
+      size,
+      {
+        ...scale,
+        boardPx: computeBoardOuterPx(Number(size), scale.cellPx, scale.gapPx),
+      },
+    ]
+  )
+) as Record<BoardSize, VisualScale>;
 
 export function createGameConfig(size: BoardSize, viewMode: ViewMode): GameConfig {
   const is3D = viewMode === '3D';
@@ -75,7 +89,7 @@ export function getRulesPreview(config: GameConfig): string {
 export function getBoardTitle(config: GameConfig): string {
   if (config.size === 1) return 'THE VOID';
   return config.is3D
-    ? `${config.size}×${config.size}×${config.size} 3D`
+    ? `${config.size}×${config.size}×${config.size}`
     : `${config.size}×${config.size} 2D`;
 }
 

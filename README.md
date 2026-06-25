@@ -16,4 +16,18 @@
   Run `npm i` to install the dependencies.
 
   Run `npm run dev` to start the development server.
+
+  ## Live services (Supabase)
+
+  1. Create a [Supabase](https://supabase.com) project.
+  2. Enable **Google** under Authentication → Providers.
+  3. Add redirect URLs: `http://localhost:3000` (and your production URL).
+  4. Run migrations in `supabase/migrations/` via the SQL editor or Supabase CLI.
+  5. Deploy the edge function: `supabase functions deploy submit-move`
+  6. Schedule abandonment cleanup (Dashboard → Cron): run `select public.abandon_stale_matches()` every minute.
+  7. Copy `.env.example` to `.env` and set:
+     - `VITE_SUPABASE_URL` — your project URL
+     - `VITE_SUPABASE_ANON_KEY` — your **publishable** key (`sb_publishable_...`), not the legacy anon JWT
+
+  Without Supabase configured, the game still works offline (AI + local 2-player). Leaderboard, profile, and online play require Supabase.
   

@@ -1,21 +1,21 @@
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { cn } from '../lib/utils';
 import { getCellSurfaceStyles } from '../utils/boardTranslucency';
 import { motion } from 'motion/react';
 
-interface CellProps {
+export interface CellProps {
+  cellIndex: number;
   value: 'X' | 'O' | null;
-  onClick: () => void;
+  onCellClick: (index: number) => void;
   isWinningCell: boolean;
   disabled: boolean;
   cellSize: number;
   pieceStackCount?: number;
-  cellIndex?: number;
   cellOpacity?: number;
   isLastMove?: boolean;
 }
 
-function PieceX({
+const PieceX = memo(function PieceX({
   isWinning,
   size,
   stackCount,
@@ -29,11 +29,14 @@ function PieceX({
   const barHeight = Math.max(2, Math.round(size * 0.08));
 
   const bodyColor = isWinning
-    ? 'bg-orange-400 shadow-[0_0_10px_#f97316]'
-    : 'bg-orange-600';
-  const topColor = isWinning ? 'bg-orange-100' : 'bg-orange-400';
+    ? 'bg-[var(--neon-orange)] shadow-[0_0_10px_var(--neon-orange-glow)]'
+    : 'bg-[var(--neon-orange)]';
+  const topColor = isWinning ? 'bg-[var(--player-x-light)]' : 'bg-[#ff9a4d]';
 
-  const layers = Array.from({ length: stackCount }, (_, i) => i * layerSpacing);
+  const layers = useMemo(
+    () => Array.from({ length: stackCount }, (_, i) => i * layerSpacing),
+    [stackCount, layerSpacing]
+  );
 
   return (
     <motion.div
@@ -71,7 +74,7 @@ function PieceX({
             className={cn(
               'absolute top-1/2 left-1/2 w-[110%] -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[1px] border border-white/20',
               topColor,
-              isWinning && 'shadow-[0_0_20px_#f97316] border-white'
+              isWinning && 'shadow-[0_0_20px_var(--neon-orange-glow)] border-white'
             )}
             style={{ height: barHeight }}
           />
@@ -79,7 +82,7 @@ function PieceX({
             className={cn(
               'absolute top-1/2 left-1/2 w-[110%] -translate-x-1/2 -translate-y-1/2 -rotate-45 rounded-[1px] border border-white/20',
               topColor,
-              isWinning && 'shadow-[0_0_20px_#f97316] border-white'
+              isWinning && 'shadow-[0_0_20px_var(--neon-orange-glow)] border-white'
             )}
             style={{ height: barHeight }}
           />
@@ -87,9 +90,9 @@ function PieceX({
       </div>
     </motion.div>
   );
-}
+});
 
-function PieceO({
+const PieceO = memo(function PieceO({
   isWinning,
   size,
   stackCount,
@@ -103,11 +106,14 @@ function PieceO({
   const borderWidth = Math.max(3, Math.round(size * 0.12));
 
   const bodyColor = isWinning
-    ? 'border-purple-400 shadow-[0_0_10px_#a855f7]'
-    : 'border-purple-600';
-  const topColor = isWinning ? 'border-purple-100' : 'border-purple-400';
+    ? 'border-[var(--neon-violet)] shadow-[0_0_10px_var(--neon-violet-glow)]'
+    : 'border-[var(--neon-violet)]';
+  const topColor = isWinning ? 'border-[var(--player-o-light)]' : 'border-[#c084fc]';
 
-  const layers = Array.from({ length: stackCount }, (_, i) => i * layerSpacing);
+  const layers = useMemo(
+    () => Array.from({ length: stackCount }, (_, i) => i * layerSpacing),
+    [stackCount, layerSpacing]
+  );
 
   return (
     <motion.div
@@ -133,83 +139,72 @@ function PieceO({
           className={cn(
             'absolute inset-0 rounded-full border-white/20',
             topColor,
-            isWinning && 'shadow-[0_0_20px_#a855f7] border-white'
+            isWinning && 'shadow-[0_0_20px_var(--neon-violet-glow)] border-white'
           )}
           style={{ transform: `translateZ(${thickness}px)`, borderWidth, borderStyle: 'solid' }}
         />
       </div>
     </motion.div>
   );
-}
+});
 
-export function Cell({
+const surfaceStylesCache = new WeakMap<object, ReturnType<typeof getCellSurfaceStyles>>();
+
+function CellComponent({
+  cellIndex,
   value,
-  onClick,
+  onCellClick,
   isWinningCell,
   disabled,
   cellSize,
   pieceStackCount = 12,
-  cellIndex,
   cellOpacity = 15,
   isLastMove = false,
 }: CellProps) {
   const isInteractive = !disabled && value === null;
   const showLastMoveGlow = isLastMove && !isWinningCell;
-  const label =
-    cellIndex !== undefined
-      ? value
-        ? `Cell ${cellIndex + 1}, ${value}`
-        : `Empty cell ${cellIndex + 1}`
-      : value
-        ? `Cell, ${value}`
-        : 'Empty cell';
+  const label = value
+    ? `Cell ${cellIndex + 1}, ${value}`
+    : `Empty cell ${cellIndex + 1}`;
+
+  const surfaceStyles = getCellSurfaceStyles(cellOpacity, isWinningCell);
 
   return (
     <button
       type="button"
-      onClick={isInteractive ? onClick : undefined}
+      onClick={isInteractive ? () => onCellClick(cellIndex) : undefined}
       disabled={!isInteractive}
       aria-label={label}
       className={cn(
-        'group relative flex items-center justify-center rounded-md border p-0 transition-all duration-200',
+        'group relative flex items-center justify-center rounded-md border p-0 transition-[border-color,transform] duration-200',
         cellOpacity > 0 && !isWinningCell && 'border-border/50',
         cellOpacity <= 0 && !isWinningCell && 'border-transparent',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-        isInteractive && cellOpacity > 0 && 'cursor-pointer hover:border-border active:scale-95',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon-lime)]/50 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent',
+        isInteractive && cellOpacity > 0 && 'cursor-pointer hover:border-[var(--game-border)] active:scale-95',
         isInteractive && cellOpacity <= 0 && 'cursor-pointer active:scale-95',
         disabled && !isWinningCell && 'cursor-default opacity-90',
-        isWinningCell && value === 'X' && 'border-orange-500/40 bg-orange-500/10',
-        isWinningCell && value === 'O' && 'border-violet-500/40 bg-violet-500/10'
+        isWinningCell && value === 'X' && 'border-[var(--neon-orange)]/45 bg-[var(--neon-orange)]/12',
+        isWinningCell && value === 'O' && 'border-[var(--neon-violet)]/45 bg-[var(--neon-violet)]/12'
       )}
       style={{
         width: cellSize,
         height: cellSize,
         transformStyle: 'preserve-3d',
-        ...getCellSurfaceStyles(cellOpacity, isWinningCell),
+        contain: 'layout paint',
+        ...surfaceStyles,
       }}
     >
       {cellOpacity > 0 && (
         <div className="pointer-events-none absolute inset-0 rounded-md bg-gradient-to-br from-white/5 to-transparent" />
       )}
       {showLastMoveGlow && (
-        <motion.div
+        <div
           className={cn(
-            'pointer-events-none absolute inset-0 rounded-md',
-            value === 'X' && 'ring-2 ring-orange-400/70',
-            value === 'O' && 'ring-2 ring-violet-400/70',
-            !value && 'ring-2 ring-primary/50'
+            'pointer-events-none absolute inset-0 rounded-md last-move-cell-glow',
+            value === 'X' && 'last-move-cell-glow-x',
+            value === 'O' && 'last-move-cell-glow-o',
+            !value && 'last-move-cell-glow-neutral'
           )}
-          initial={{ opacity: 0, scale: 0.92 }}
-          animate={{
-            opacity: [0, 1, 1, 0],
-            scale: [0.92, 1, 1, 1],
-            boxShadow: value === 'X'
-              ? ['0 0 0px transparent', '0 0 20px var(--player-x-glow)', '0 0 20px var(--player-x-glow)', '0 0 0px transparent']
-              : value === 'O'
-                ? ['0 0 0px transparent', '0 0 20px var(--player-o-glow)', '0 0 20px var(--player-o-glow)', '0 0 0px transparent']
-                : ['0 0 0px transparent', '0 0 12px rgba(128,128,128,0.4)', '0 0 12px rgba(128,128,128,0.4)', '0 0 0px transparent'],
-          }}
-          transition={{ duration: 1.5, times: [0, 0.15, 0.7, 1], ease: 'easeOut' }}
         />
       )}
       {value === 'X' && (
@@ -221,3 +216,19 @@ export function Cell({
     </button>
   );
 }
+
+function cellPropsAreEqual(prev: CellProps, next: CellProps): boolean {
+  return (
+    prev.cellIndex === next.cellIndex &&
+    prev.value === next.value &&
+    prev.isWinningCell === next.isWinningCell &&
+    prev.disabled === next.disabled &&
+    prev.cellSize === next.cellSize &&
+    prev.pieceStackCount === next.pieceStackCount &&
+    prev.cellOpacity === next.cellOpacity &&
+    prev.isLastMove === next.isLastMove &&
+    prev.onCellClick === next.onCellClick
+  );
+}
+
+export const Cell = memo(CellComponent, cellPropsAreEqual);

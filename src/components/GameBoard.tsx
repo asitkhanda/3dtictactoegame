@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   applyMove,
   BoardState,
@@ -18,6 +18,7 @@ import { BoardLayer } from './BoardLayer';
 import { Board2D } from './Board2D';
 import { BoardCameraJoystick } from './BoardCameraJoystick';
 import { GameSetupMenu } from './GameSetupMenu';
+import { ArcadeShell } from './ArcadeShell';
 import { useBoardScale } from '../hooks/useBoardScale';
 import { useBoardViewport } from '../hooks/useBoardViewport';
 import { useRotationSensitivity } from '../hooks/useRotationSensitivity';
@@ -25,12 +26,6 @@ import { useBoardTranslucency } from '../hooks/useBoardTranslucency';
 import { layerOpacityToCellAlpha } from '../utils/boardTranslucency';
 import { useIsMobile } from './ui/use-mobile';
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-} from './ui/card';
 import {
   Tooltip,
   TooltipContent,
@@ -42,14 +37,22 @@ import {
   Trophy,
   MousePointer2,
   Sparkles,
+  Info,
 } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 import { cn } from '../lib/utils';
 import { ThemeToggle } from './ThemeToggle';
+import { useAuth } from '../contexts/AuthContext';
+import { getLocalOutcome, getPointsForOutcome, recordGameResult } from '../services/scoreService';
 
 const GAME_END_TOAST_ID = 'game-end';
 
+const arcadeIconBtn =
+  'size-8 shrink-0 rounded-full arcade-text-muted hover:bg-white/10 hover:text-[var(--arcade-fg)] dark:hover:text-white';
+
 export function GameBoard() {
+  const { user, profile, signInWithGoogle, isConfigured } = useAuth();
+  const scoredGameRef = useRef<string | null>(null);
   const [session, setSession] = useState<{
     config: GameConfig;
     gameMode: GameMode;
@@ -74,13 +77,14 @@ export function GameBoard() {
   const [winner, setWinner] = useState<'X' | 'O' | null>(null);
   const [draw, setDraw] = useState(false);
   const [lastMoveIndex, setLastMoveIndex] = useState<number | null>(null);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   const boardScale = useBoardScale({
     boardPx: config?.visual.boardPx ?? 300,
     is3D: config?.is3D ?? false,
     layerCount: config?.layerCount ?? 1,
     layerSpacing: config?.visual.layerSpacing ?? 100,
-    hudHeight: 72,
+    hudHeight: 80,
   });
 
   const showZoomControls = (config?.size ?? 0) >= 3;
@@ -203,24 +207,67 @@ export function GameBoard() {
       return;
     }
 
-    toast(draw ? 'Draw' : getWinMessage(), {
+    const gameKey = `${gameMode}-${config.size}-${winner ?? 'draw'}-${board.join('')}`;
+    let pointsSuffix = '';
+
+    if (
+      isConfigured &&
+      user &&
+      profile?.username &&
+      gameMode !== 'PVP_ONLINE' &&
+      scoredGameRef.current !== gameKey
+    ) {
+      scoredGameRef.current = gameKey;
+      const outcome = getLocalOutcome(gameMode, winner, draw);
+      if (outcome) {
+        const pointsEarned = getPointsForOutcome(gameMode, outcome);
+        if (pointsEarned !== 0) {
+          pointsSuffix = ` (+${pointsEarned} pts)`;
+        }
+        void recordGameResult(gameMode, config.size, outcome);
+      }
+    }
+
+    const baseMessage = draw ? 'Draw' : getWinMessage();
+    const guestAction =
+      isConfigured && !user && !draw
+        ? {
+            label: 'Sign in to save',
+            onClick: () => void signInWithGoogle(),
+          }
+        : undefined;
+
+    toast(`${baseMessage}${pointsSuffix}`, {
       id: GAME_END_TOAST_ID,
       duration: Infinity,
       icon: draw ? (
         <Sparkles className="size-4" />
       ) : (
-        <Trophy className="size-4 text-amber-400" />
+        <Trophy className="size-4 text-[var(--neon-orange)]" />
       ),
       action: {
         label: 'Play again',
         onClick: resetGameState,
       },
-      cancel: {
+      cancel: guestAction ?? {
         label: 'Change setup',
         onClick: exitToMenu,
       },
     });
-  }, [config, gameMode, winner, draw, getWinMessage, resetGameState, exitToMenu]);
+  }, [
+    config,
+    gameMode,
+    winner,
+    draw,
+    board,
+    getWinMessage,
+    resetGameState,
+    exitToMenu,
+    user,
+    profile?.username,
+    isConfigured,
+    signInWithGoogle,
+  ]);
 
   if (!session || !config || !gameMode) {
     return <GameSetupMenu onStart={handleStart} />;
@@ -236,6 +283,18 @@ export function GameBoard() {
   const boardTitle = getBoardTitle(config);
   const rulesHint = getRulesPreview(config);
 
+  const statusMessage = draw
+    ? 'Game ended in a draw.'
+    : winner
+      ? getWinMessage()
+      : gameMode === 'PVE'
+        ? isXNext
+          ? 'Your turn.'
+          : 'AI is thinking.'
+        : isXNext
+          ? "Player X's turn."
+          : "Player O's turn.";
+
   const isLayerDisabled = (layerIndex: number) =>
     !!winner ||
     draw ||
@@ -243,189 +302,212 @@ export function GameBoard() {
     (gameMode === 'PVE' && !isXNext);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-muted/20 via-background to-background"
-      />
+    <ArcadeShell variant="gameplay">
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {statusMessage}
+      </div>
 
-      <header className="glass-surface sticky top-0 z-50 shrink-0 px-2 py-1">
-        <div className="mx-auto w-full max-w-2xl space-y-1.5">
-          <Card className="gap-0 rounded-lg border-border/40 bg-transparent py-0 shadow-none">
-            <CardHeader className="gap-0 px-2 py-1.5">
-              <div className="flex items-center gap-1.5">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-7 shrink-0"
-                      onClick={exitToMenu}
-                      aria-label="Exit to menu"
-                    >
-                      <ArrowLeft className="size-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Back to menu</TooltipContent>
-                </Tooltip>
+      <header className="sticky top-0 z-50 shrink-0 px-3 py-2 sm:px-4">
+        <div className="arcade-panel mx-auto w-full max-w-3xl rounded-2xl px-2 py-1.5 sm:px-3">
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={arcadeIconBtn}
+                  onClick={exitToMenu}
+                  aria-label="Exit to menu"
+                >
+                  <ArrowLeft className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Back to menu</TooltipContent>
+            </Tooltip>
 
-                <div className="min-w-0 flex-1">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex min-w-0 items-center gap-1">
-                        <CardTitle className="truncate text-sm font-semibold">{boardTitle}</CardTitle>
-                        <Badge variant="outline" className="hidden shrink-0 font-mono text-[9px] uppercase sm:inline-flex">
-                          {gameMode === 'PVE' ? '1P' : '2P'}
-                        </Badge>
-                        {config.size === 1 && (
-                          <Badge className="hidden shrink-0 border-violet-500/30 bg-violet-500/10 px-1 py-0 text-[9px] text-violet-600 dark:text-violet-300 sm:inline-flex">
-                            <Sparkles className="mr-0.5 size-2.5" />
-                            Void
-                          </Badge>
-                        )}
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-xs text-xs">
-                      {rulesHint}
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-
-                {showLayerScore ? (
-                  <div className="flex shrink-0 items-center gap-1">
-                    <PlayerScore
-                      label={gameMode === 'PVE' ? 'You' : 'X'}
-                      score={xScore}
-                      threshold={config.matchWinThreshold}
-                      active={isXActive}
-                      tone="x"
-                    />
-                    <span className="text-muted-foreground font-mono text-[9px]">vs</span>
-                    <PlayerScore
-                      label={gameMode === 'PVE' ? 'AI' : 'O'}
-                      score={oScore}
-                      threshold={config.matchWinThreshold}
-                      active={isOActive}
-                      tone="o"
-                    />
-                  </div>
-                ) : (
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      'shrink-0 px-2 py-0 text-[10px]',
-                      isXActive
-                        ? 'border-orange-500/40 bg-orange-500/10 text-orange-600 dark:text-orange-300'
-                        : 'border-violet-500/40 bg-violet-500/10 text-violet-600 dark:text-violet-300'
-                    )}
-                  >
-                    {isXActive
-                      ? gameMode === 'PVE'
-                        ? 'Your turn'
-                        : 'X'
-                      : gameMode === 'PVE'
-                        ? 'AI…'
-                        : 'O'}
-                  </Badge>
+            <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <h1 className="font-display truncate text-sm font-extrabold tracking-tight sm:text-base">
+                  {boardTitle}
+                </h1>
+                <span className="font-body hidden shrink-0 rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase sm:inline dark:border-white/15">
+                  {gameMode === 'PVE' ? '1P' : '2P'}
+                </span>
+                {config.size === 1 && (
+                  <span className="font-body hidden shrink-0 items-center gap-0.5 rounded-full border border-[var(--neon-violet)]/35 bg-[var(--neon-violet)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--neon-violet)] sm:inline-flex">
+                    <Sparkles className="size-2.5" />
+                    Void
+                  </span>
                 )}
-
-                {config.is3D && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 shrink-0"
-                        onClick={resetView}
-                        aria-label="Reset view"
-                      >
-                        <RotateCcw className="size-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Reset camera</TooltipContent>
-                  </Tooltip>
-                )}
-
-                <ThemeToggle />
               </div>
-            </CardHeader>
-          </Card>
+            </div>
+
+            {showLayerScore ? (
+              <div className="flex shrink-0 items-center gap-1.5">
+                <PlayerScore
+                  label={gameMode === 'PVE' ? 'You' : 'X'}
+                  score={xScore}
+                  threshold={config.matchWinThreshold}
+                  active={isXActive}
+                  tone="x"
+                />
+                <span className="font-mono text-xs arcade-text-muted">vs</span>
+                <PlayerScore
+                  label={gameMode === 'PVE' ? 'AI' : 'O'}
+                  score={oScore}
+                  threshold={config.matchWinThreshold}
+                  active={isOActive}
+                  tone="o"
+                />
+              </div>
+            ) : (
+              <TurnBadge
+                active={isXActive}
+                label={
+                  isXActive
+                    ? gameMode === 'PVE'
+                      ? 'Your turn'
+                      : 'X'
+                    : gameMode === 'PVE'
+                      ? 'AI…'
+                      : 'O'
+                }
+              />
+            )}
+
+            {config.is3D && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={arcadeIconBtn}
+                    onClick={resetView}
+                    aria-label="Reset view"
+                  >
+                    <RotateCcw className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Reset camera</TooltipContent>
+              </Tooltip>
+            )}
+
+            <ThemeToggle className={arcadeIconBtn} />
+          </div>
+
+          <div className="mt-1.5 flex items-start gap-2 border-t border-white/10 pt-1.5 dark:border-white/10">
+            <button
+              type="button"
+              onClick={() => setRulesOpen((open) => !open)}
+              className="font-body flex shrink-0 items-center gap-1 rounded-lg px-1.5 py-0.5 text-xs arcade-text-muted transition-colors hover:bg-white/5 hover:text-[var(--arcade-fg)] dark:hover:text-white"
+              aria-expanded={rulesOpen}
+              aria-controls="game-rules-hint"
+            >
+              <Info className="size-3.5" />
+              Rules
+            </button>
+            <p
+              id="game-rules-hint"
+              className={cn(
+                'font-body text-xs leading-snug arcade-text-muted',
+                rulesOpen ? 'block' : 'sr-only'
+              )}
+            >
+              {rulesHint}
+            </p>
+          </div>
         </div>
       </header>
 
-      <main className="relative flex flex-1 min-h-0 flex-col items-center justify-center overflow-auto p-4">
+      <main className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-auto px-3 py-2 sm:px-4">
         {!winner && !draw && (config.is3D || showZoomControls) && (
-          <div className="text-muted-foreground pointer-events-none mb-0.5 flex items-center gap-1 font-mono text-[9px] opacity-70">
-            <MousePointer2 className="size-3" />
+          <p className="font-body pointer-events-none mb-1 flex items-center gap-1.5 text-xs arcade-text-muted">
+            <MousePointer2 className="size-3.5 shrink-0" aria-hidden />
             {config.is3D
               ? showCameraJoystick
-                ? 'Use joystick to rotate · Scroll or side buttons to zoom'
+                ? 'Joystick to rotate · Scroll or buttons to zoom'
                 : 'Pinch to zoom · Drag to rotate'
               : isMobile
                 ? 'Pinch or panel buttons to zoom'
                 : 'Scroll or panel buttons to zoom'}
-          </div>
+          </p>
         )}
 
-        <div
-          ref={viewportRef}
-          className={cn(
-            'flex flex-1 items-center justify-center will-change-transform',
-            config.is3D && 'touch-none cursor-grab active:cursor-grabbing'
-          )}
-          style={{ transformOrigin: 'center center' }}
-          {...viewportHandlers}
-        >
-          {config.is3D ? (
+        <div className="relative flex flex-1 items-center justify-center">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          >
             <div
-              className="flex items-center justify-center"
-              style={{ perspective: config.size >= 6 ? '900px' : '1200px' }}
-            >
-              <div
-                ref={boardRef}
-                className="relative h-0 w-0 will-change-transform"
-                style={{ transformStyle: 'preserve-3d' }}
-              >
-                {Array.from({ length: config.layerCount }, (_, i) => (
-                  <BoardLayer
-                    key={i}
-                    layerIndex={i}
-                    totalLayers={config.layerCount}
-                    size={config.size}
-                    cellsPerLayer={config.cellsPerLayer}
-                    boardPx={config.visual.boardPx}
-                    cellPx={config.visual.cellPx}
-                    gapPx={config.visual.gapPx}
-                    spacingZ={config.visual.layerSpacing}
-                    pieceStackCount={config.visual.pieceStackCount}
-                    board={board}
-                    onCellClick={handleCellClick}
-                    winningLine={
-                      crossLayerWinningLine ||
-                      layerWinners[i]?.line ||
-                      (config.size === 1 ? highlightLine : null)
-                    }
-                    disabled={isLayerDisabled(i)}
-                    showLabel={config.layerCount > 1}
-                    layerOpacity={translucency}
-                    cellOpacity={cellOpacity}
-                    lastMoveIndex={lastMoveIndex}
-                  />
-                ))}
-              </div>
-            </div>
-          ) : (
-            <Board2D
-              config={config}
-              board={board}
-              onCellClick={handleCellClick}
-              winningLine={highlightLine}
-              disabled={!!winner || draw || (gameMode === 'PVE' && !isXNext)}
-              layerOpacity={translucency}
-              cellOpacity={cellOpacity}
-              lastMoveIndex={lastMoveIndex}
+              className="h-[min(70vw,420px)] w-[min(70vw,420px)] rounded-full blur-3xl"
+              style={{
+                background:
+                  'radial-gradient(circle, var(--neon-orange-glow) 0%, var(--neon-violet-glow) 45%, transparent 70%)',
+                opacity: 0.45,
+              }}
             />
-          )}
+          </div>
+
+          <div
+            ref={viewportRef}
+            className={cn(
+              'relative flex flex-1 items-center justify-center',
+              config.is3D && 'touch-none cursor-grab active:cursor-grabbing'
+            )}
+            style={{ transformOrigin: 'center center' }}
+            {...viewportHandlers}
+          >
+            {config.is3D ? (
+              <div
+                className="flex items-center justify-center"
+                style={{ perspective: config.size >= 6 ? '900px' : '1200px' }}
+              >
+                <div
+                  ref={boardRef}
+                  className="relative h-0 w-0"
+                  style={{ transformStyle: 'preserve-3d' }}
+                >
+                  {Array.from({ length: config.layerCount }, (_, i) => (
+                    <BoardLayer
+                      key={i}
+                      layerIndex={i}
+                      totalLayers={config.layerCount}
+                      size={config.size}
+                      cellsPerLayer={config.cellsPerLayer}
+                      boardPx={config.visual.boardPx}
+                      cellPx={config.visual.cellPx}
+                      gapPx={config.visual.gapPx}
+                      spacingZ={config.visual.layerSpacing}
+                      pieceStackCount={config.visual.pieceStackCount}
+                      board={board}
+                      onCellClick={handleCellClick}
+                      winningLine={
+                        crossLayerWinningLine ||
+                        layerWinners[i]?.line ||
+                        (config.size === 1 ? highlightLine : null)
+                      }
+                      disabled={isLayerDisabled(i)}
+                      showLabel={config.layerCount > 1}
+                      layerOpacity={translucency}
+                      cellOpacity={cellOpacity}
+                      lastMoveIndex={lastMoveIndex}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <Board2D
+                config={config}
+                board={board}
+                onCellClick={handleCellClick}
+                winningLine={highlightLine}
+                disabled={!!winner || draw || (gameMode === 'PVE' && !isXNext)}
+                layerOpacity={translucency}
+                cellOpacity={cellOpacity}
+                lastMoveIndex={lastMoveIndex}
+              />
+            )}
+          </div>
         </div>
 
         {showCameraJoystick && isGameActive && (
@@ -452,7 +534,22 @@ export function GameBoard() {
           />
         )}
       </main>
-    </div>
+    </ArcadeShell>
+  );
+}
+
+function TurnBadge({ active, label }: { active: boolean; label: string }) {
+  return (
+    <span
+      className={cn(
+        'font-body shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold tracking-wide',
+        active
+          ? 'border-[var(--neon-orange)]/45 bg-[var(--neon-orange)]/15 text-[var(--neon-orange)]'
+          : 'border-[var(--neon-violet)]/45 bg-[var(--neon-violet)]/15 text-[var(--neon-violet)]'
+      )}
+    >
+      {label}
+    </span>
   );
 }
 
@@ -469,33 +566,32 @@ function PlayerScore({
   active: boolean;
   tone: 'x' | 'o';
 }) {
-  const colors =
-    tone === 'x'
-      ? {
-          active: 'border-orange-500/40 bg-orange-500/10',
-          text: 'text-orange-600 dark:text-orange-400',
-          dot: 'bg-orange-500',
-        }
-      : {
-          active: 'border-violet-500/40 bg-violet-500/10',
-          text: 'text-violet-600 dark:text-violet-400',
-          dot: 'bg-violet-500',
-        };
+  const isX = tone === 'x';
+  const neon = isX ? 'var(--neon-orange)' : 'var(--neon-violet)';
 
   return (
     <div
       className={cn(
-        'flex items-center gap-1 rounded-md border border-transparent px-1.5 py-0.5 transition-colors',
-        active && colors.active
+        'flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-0.5 transition-colors',
+        active && (isX ? 'border-[var(--neon-orange)]/40 bg-[var(--neon-orange)]/10' : 'border-[var(--neon-violet)]/40 bg-[var(--neon-violet)]/10')
       )}
     >
-      <div className="text-muted-foreground flex items-center gap-1 text-[9px] uppercase tracking-wide">
-        {active && <span className={cn('size-1 rounded-full', colors.dot)} />}
+      <div className="font-body flex items-center gap-1 text-xs font-medium tracking-wide uppercase arcade-text-muted">
+        {active && (
+          <span
+            className="size-1.5 rounded-full"
+            style={{ backgroundColor: neon }}
+            aria-hidden
+          />
+        )}
         {label}
       </div>
-      <div className={cn('font-mono text-sm font-bold tabular-nums leading-none', colors.text)}>
+      <div
+        className="font-display text-sm font-bold tabular-nums leading-none"
+        style={{ color: neon }}
+      >
         {score}
-        <span className="text-muted-foreground text-[10px] font-normal">/{threshold}</span>
+        <span className="font-body text-xs font-normal arcade-text-muted">/{threshold}</span>
       </div>
     </div>
   );
