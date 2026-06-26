@@ -1,33 +1,92 @@
-![Bluesky followers](https://img.shields.io/bluesky/followers/asit.space?style=plastic&logo=bluesky)  ![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/asitkhanda?style=plastic&logo=x)
+# Twisted Tac
 
+**Stack layers. Strike through depth. Win the cube.**
 
-  # 3D Tic Tac Toe Game
+[Play now →](https://twistedtac.com/)
 
-  Hello! I created this project as a part of my experimentation and learning of vibe-coding tools like Figma Make.
+Twisted Tac is a 3D take on tic-tac-toe. Instead of lining up three marks on a flat grid, you play across stacked layers — rotate the cube, read lines through depth, and outthink your opponent in space.
 
-  This is a simple twist on the classic game of Tic Tac Toe where now you have to win spatially across the 3 layers.
+---
 
-  This is a code bundle for 3D Tic Tac Toe Game. The original project is available at https://www.figma.com/design/okF1cKZss3NZUxd7AevclT/3D-Tic-Tac-Toe-Game.
+## How it works
 
-  Please feel free to fork it or suggest changes to merge so that we can make it even better.
+On the classic **3×3×3** board, you can win in two ways:
 
-  ## Running the code
+1. **Layer wins** — complete a row, column, or diagonal on a single layer. First to **2 of 3 layers** takes the match.
+2. **3D lines** — connect three marks through the stack (vertical columns, depth diagonals, and space diagonals).
 
-  Run `npm i` to install the dependencies.
+Once a layer is won, it locks — no more moves on that layer. If neither player can reach the win threshold and no legal moves remain, the game ends in a **draw**.
 
-  Run `npm run dev` to start the development server.
+---
 
-  ## Live services (Supabase)
+## Game modes
 
-  1. Create a [Supabase](https://supabase.com) project.
-  2. Enable **Google** under Authentication → Providers.
-  3. Add redirect URLs: `http://localhost:3000` (and your production URL).
-  4. Run migrations in `supabase/migrations/` via the SQL editor or Supabase CLI.
-  5. Deploy the edge function: `supabase functions deploy submit-move`
-  6. Schedule abandonment cleanup (Dashboard → Cron): run `select public.abandon_stale_matches()` every minute.
-  7. Copy `.env.example` to `.env` and set:
-     - `VITE_SUPABASE_URL` — your project URL
-     - `VITE_SUPABASE_ANON_KEY` — your **publishable** key (`sb_publishable_...`), not the legacy anon JWT
+| Mode | Description |
+|------|-------------|
+| **VS AI** | Solo play against a strategic opponent |
+| **2 Player** | Local pass-and-play on the same device |
+| **Online** | Create or join a room and play remotely (sign-in required) |
 
-  Without Supabase configured, the game still works offline (AI + local 2-player). Leaderboard, profile, and online play require Supabase.
-  
+Earn points for wins and draws. Sign in with Google to track your profile and climb the **leaderboard**.
+
+---
+
+## Features
+
+- Interactive **3D board** — rotate with the joystick, zoom in and out
+- Neon arcade-style UI with smooth piece animations
+- **Leaderboard** and player profiles
+- **Secret board sizes** (1×1 through 8×8) — find the easter egg on the landing page
+- Works offline for AI and local two-player; online features need a backend connection
+
+---
+
+## Play
+
+**Live game:** [twistedtac.com](https://twistedtac.com/)
+
+No install required — open the link and pick a mode.
+
+---
+
+## Run locally
+
+```bash
+npm install
+npm run dev
+```
+
+Open the URL shown in your terminal (typically `http://localhost:3000`).
+
+### Optional: online features
+
+Leaderboard, profiles, and online multiplayer use [Supabase](https://supabase.com). Without it, the game still runs for AI and local two-player.
+
+1. Create a Supabase project and enable **Google** under Authentication → Providers.
+2. Add redirect URLs for `http://localhost:3000` and your production domain.
+3. Run migrations from `supabase/migrations/`.
+4. Deploy the edge function: `supabase functions deploy submit-move`
+5. Schedule a cron job to run `select public.abandon_stale_matches()` every minute.
+6. Copy `.env.example` to `.env` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+
+### Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start the dev server |
+| `npm run build` | Production build |
+| `npm test` | Run tests |
+
+---
+
+## Tech stack
+
+React · TypeScript · Vite · Tailwind CSS · Supabase · Vercel
+
+---
+
+## Author
+
+Built by [Asit Khanda](https://asit.space/)
+
+Forks and contributions welcome.
