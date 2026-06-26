@@ -101,6 +101,10 @@ export interface Database {
         Args: { p_match_id: string; p_connected: boolean };
         Returns: void;
       };
+      forfeit_match: {
+        Args: { p_match_id: string };
+        Returns: MatchRow;
+      };
       check_username_available: {
         Args: { desired_username: string };
         Returns: boolean;

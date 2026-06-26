@@ -1,16 +1,25 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Copy, Loader2, WifiOff } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 import { useAuth } from '../contexts/AuthContext';
 import { useMatch } from '../hooks/useMatch';
-import { submitMatchMove, getInviteLink } from '../services/matchService';
+import {
+  submitMatchMove,
+  getInviteLink,
+  getOpponentProfile,
+  forfeitMatch,
+  getSymbolForUser,
+  getUserIdForSymbol,
+} from '../services/matchService';
 import { deserializeGameConfig } from '../utils/configSerialize';
 import { getBoardTitle, getRulesPreview } from '../utils/gameConfig';
-import type { BoardState, LayerResult } from '../utils/gameLogic';
+import { applyMove, type BoardState, type LayerResult } from '../utils/gameLogic';
+import type { MatchRow } from '../types/database';
 import { ArcadeShell } from '../components/ArcadeShell';
 import { BoardLayer } from '../components/BoardLayer';
 import { BoardCameraJoystick } from '../components/BoardCameraJoystick';
+import { PlayerScore, TurnBadge } from '../components/game/GameHud';
 import { useBoardScale } from '../hooks/useBoardScale';
 import { useBoardViewport } from '../hooks/useBoardViewport';
 import { useRotationSensitivity } from '../hooks/useRotationSensitivity';
@@ -18,15 +27,32 @@ import { useBoardTranslucency } from '../hooks/useBoardTranslucency';
 import { layerOpacityToCellAlpha } from '../utils/boardTranslucency';
 import { useIsMobile } from '../components/ui/use-mobile';
 import { Button } from '../components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
 import { cn } from '../lib/utils';
 
 export function OnlineGamePage() {
   const { matchId } = useParams<{ matchId: string }>();
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
-  const { match, connectionStatus, opponentDisconnected, error } = useMatch(matchId, user?.id);
-  const [submitting, setSubmitting] = useState(false);
+  const { match, connectionStatus, opponentDisconnected, error, refresh, applyMatch } = useMatch(
+    matchId,
+    user?.id
+  );
+  const [pendingMoveIndex, setPendingMoveIndex] = useState<number | null>(null);
   const [lastMoveIndex, setLastMoveIndex] = useState<number | null>(null);
+  const [opponentLabel, setOpponentLabel] = useState('Opponent');
+  const [exitDialogOpen, setExitDialogOpen] = useState(false);
+  const [forfeiting, setForfeiting] = useState(false);
+  const prevBoardRef = useRef<BoardState | null>(null);
+  const forfeitInitiatedRef = useRef(false);
+  const forfeitToastShownRef = useRef(false);
 
   const config = useMemo(
     () => (match ? deserializeGameConfig(match.config) : null),
@@ -41,17 +67,65 @@ export function OnlineGamePage() {
   const isGameActive = match?.status === 'active' && !winner && !draw;
 
   const mySymbol =
-    match && user
-      ? user.id === match.host_id
-        ? match.host_plays_x
-          ? 'X'
-          : 'O'
-        : match.host_plays_x
-          ? 'O'
-          : 'X'
-      : null;
+    match && user ? getSymbolForUser(match, user.id) : null;
 
   const isMyTurn = Boolean(match && user && match.current_turn_user_id === user.id);
+
+  const opponentId =
+    match && user
+      ? user.id === match.host_id
+        ? match.guest_id
+        : match.host_id
+      : null;
+
+  useEffect(() => {
+    if (!opponentId) return;
+    void getOpponentProfile(opponentId).then(({ profile: opponentProfile }) => {
+      if (opponentProfile?.username) {
+        setOpponentLabel(opponentProfile.username);
+      }
+    });
+  }, [opponentId]);
+
+  useEffect(() => {
+    if (!match?.board) return;
+
+    const prev = prevBoardRef.current;
+    if (prev && prev.length === match.board.length) {
+      for (let i = 0; i < match.board.length; i++) {
+        if (prev[i] === null && match.board[i] !== null) {
+          setLastMoveIndex(i);
+          break;
+        }
+      }
+    }
+    prevBoardRef.current = match.board as BoardState;
+  }, [match?.board]);
+
+  useEffect(() => {
+    if (lastMoveIndex === null) return;
+    const timer = setTimeout(() => setLastMoveIndex(null), 1500);
+    return () => clearTimeout(timer);
+  }, [lastMoveIndex]);
+
+  useEffect(() => {
+    if (
+      !match ||
+      !user ||
+      match.status !== 'finished' ||
+      match.abandon_reason !== 'voluntary_forfeit' ||
+      forfeitInitiatedRef.current ||
+      forfeitToastShownRef.current
+    ) {
+      return;
+    }
+
+    const mySym = getSymbolForUser(match, user.id);
+    if (match.winner === mySym) {
+      forfeitToastShownRef.current = true;
+      toast.success('Opponent forfeited — you win!');
+    }
+  }, [match, user]);
 
   const boardScale = useBoardScale({
     boardPx: config?.visual.boardPx ?? 300,
@@ -67,7 +141,7 @@ export function OnlineGamePage() {
   const { translucency, setTranslucency } = useBoardTranslucency();
   const cellOpacity = layerOpacityToCellAlpha(translucency);
 
-  const { viewportRef, boardRef, resetView, setView, activePreset, zoomIn, zoomOut, rotateBy, viewportHandlers } =
+  const { viewportRef, boardRef, setView, activePreset, zoomIn, zoomOut, rotateBy, viewportHandlers } =
     useBoardViewport({
       baseScale: boardScale,
       is3D: config?.is3D ?? false,
@@ -75,28 +149,94 @@ export function OnlineGamePage() {
       rotationSensitivity: rotationMultiplier,
     });
 
+  const buildOptimisticMatch = useCallback(
+    (current: MatchRow, index: number): MatchRow | null => {
+      if (!config) return null;
+      const result = applyMove(config, board, layerWinners, index, isXNext);
+      if (!result) return null;
+
+      const finished = Boolean(result.winner || result.draw);
+      const nextTurnUserId = finished
+        ? null
+        : result.isXNext
+          ? getUserIdForSymbol(current, 'X')
+          : getUserIdForSymbol(current, 'O');
+
+      return {
+        ...current,
+        board: result.board,
+        layer_winners: result.layerWinners,
+        is_x_next: result.isXNext,
+        winner: result.winner,
+        draw: result.draw,
+        status: finished ? 'finished' : 'active',
+        current_turn_user_id: nextTurnUserId,
+      };
+    },
+    [config, board, layerWinners, isXNext]
+  );
+
   const handleCellClick = useCallback(
     async (index: number) => {
-      if (!matchId || !isMyTurn || !isGameActive || connectionStatus !== 'synced' || submitting) return;
+      if (!matchId || !match || !config || !isMyTurn || !isGameActive || pendingMoveIndex !== null) {
+        return;
+      }
 
-      setSubmitting(true);
-      const { error: moveError } = await submitMatchMove(matchId, index);
-      setSubmitting(false);
+      const optimistic = buildOptimisticMatch(match, index);
+      if (!optimistic) return;
+
+      setPendingMoveIndex(index);
+      setLastMoveIndex(index);
+      applyMatch(optimistic);
+
+      const { match: serverMatch, error: moveError } = await submitMatchMove(matchId, index);
+      setPendingMoveIndex(null);
 
       if (moveError) {
         toast.error(moveError);
+        setLastMoveIndex(null);
+        void refresh();
         return;
       }
-      setLastMoveIndex(index);
+
+      if (serverMatch) {
+        applyMatch(serverMatch);
+      }
     },
-    [matchId, isMyTurn, isGameActive, connectionStatus, submitting]
+    [
+      matchId,
+      match,
+      config,
+      isMyTurn,
+      isGameActive,
+      pendingMoveIndex,
+      buildOptimisticMatch,
+      applyMatch,
+      refresh,
+    ]
   );
+
+  const handleForfeit = useCallback(async () => {
+    if (!matchId) return;
+    setForfeiting(true);
+    forfeitInitiatedRef.current = true;
+    const { error: forfeitError } = await forfeitMatch(matchId);
+    setForfeiting(false);
+    setExitDialogOpen(false);
+
+    if (forfeitError) {
+      forfeitInitiatedRef.current = false;
+      toast.error(forfeitError);
+      return;
+    }
+
+    navigate('/');
+  }, [matchId, navigate]);
 
   const isLayerDisabled = (layerIndex: number) =>
     !isMyTurn ||
     !isGameActive ||
-    connectionStatus !== 'synced' ||
-    submitting ||
+    pendingMoveIndex !== null ||
     !!layerWinners[layerIndex]?.winner;
 
   if (authLoading) {
@@ -114,7 +254,9 @@ export function OnlineGamePage() {
       <ArcadeShell variant="landing">
         <main className="mx-auto max-w-md px-4 pt-24 text-center">
           <p className="font-body arcade-text-muted">Sign in and pick a username to play online.</p>
-          <Link to="/" className="font-body mt-4 inline-block text-sm underline">Back home</Link>
+          <Link to="/" className="font-body mt-4 inline-block text-sm underline">
+            Back home
+          </Link>
         </main>
       </ArcadeShell>
     );
@@ -125,11 +267,25 @@ export function OnlineGamePage() {
       <ArcadeShell variant="landing">
         <main className="mx-auto max-w-md px-4 pt-24 text-center">
           <p className="font-body text-destructive">{error ?? 'Match not found'}</p>
-          <Link to="/" className="font-body mt-4 inline-block text-sm underline">Back home</Link>
+          <Link to="/" className="font-body mt-4 inline-block text-sm underline">
+            Back home
+          </Link>
         </main>
       </ArcadeShell>
     );
   }
+
+  const exitDialogTitle =
+    match.status === 'waiting'
+      ? match.host_id === user.id
+        ? 'Cancel room?'
+        : 'Leave room?'
+      : 'Forfeit match?';
+
+  const exitDialogDescription =
+    match.status === 'waiting'
+      ? 'This will end the room. You will not be able to resume this match.'
+      : 'Your opponent will win. This match cannot be resumed.';
 
   if (match.status === 'waiting') {
     const isHost = user.id === match.host_id;
@@ -158,44 +314,95 @@ export function OnlineGamePage() {
             )}
           </div>
           <p className="font-body text-xs arcade-text-muted">Room expires after 10 minutes without a guest.</p>
-          <Button type="button" variant="ghost" className="font-body" onClick={() => navigate('/')}>
-            Back to menu
+          <Button type="button" variant="ghost" className="font-body" onClick={() => setExitDialogOpen(true)}>
+            <ArrowLeft className="size-4" />
+            Exit
           </Button>
         </main>
+
+        <Dialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{exitDialogTitle}</DialogTitle>
+              <DialogDescription>{exitDialogDescription}</DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button type="button" variant="outline" onClick={() => setExitDialogOpen(false)} disabled={forfeiting}>
+                Stay
+              </Button>
+              <Button type="button" variant="destructive" onClick={() => void handleForfeit()} disabled={forfeiting}>
+                {forfeiting ? <Loader2 className="size-4 animate-spin" /> : 'Exit'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </ArcadeShell>
     );
   }
 
   const boardTitle = getBoardTitle(config);
   const rulesHint = getRulesPreview(config);
+  const xScore = layerWinners.filter((l) => l.winner === 'X').length;
+  const oScore = layerWinners.filter((l) => l.winner === 'O').length;
+  const showLayerScore = config.is3D && config.size > 1;
+  const isXActive = winner === 'X' || (isGameActive && isXNext);
+  const isOActive = winner === 'O' || (isGameActive && !isXNext);
+  const xLabel = mySymbol === 'X' ? 'You' : opponentLabel;
+  const oLabel = mySymbol === 'O' ? 'You' : opponentLabel;
+
   const statusMessage = draw
-    ? 'Draw'
+    ? 'Game ended in a draw.'
     : winner
-      ? `${winner} wins`
+      ? match.abandon_reason === 'voluntary_forfeit'
+        ? winner === mySymbol
+          ? 'Opponent forfeited — you win!'
+          : 'You forfeited.'
+        : `${winner} wins.`
       : isMyTurn
-        ? 'Your turn'
-        : "Opponent's turn";
+        ? 'Your turn.'
+        : "Opponent's turn.";
 
   return (
     <ArcadeShell variant="gameplay">
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {statusMessage}
+      </div>
+
       <header className="sticky top-0 z-50 shrink-0 px-3 py-2 sm:px-4">
         <div className="arcade-panel mx-auto w-full max-w-3xl rounded-2xl px-2 py-1.5 sm:px-3">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="size-8" onClick={() => navigate('/')}>
+            <Button variant="ghost" size="icon" className="size-8" onClick={() => setExitDialogOpen(true)}>
               <ArrowLeft className="size-4" />
             </Button>
             <div className="min-w-0 flex-1">
               <h1 className="font-display truncate text-sm font-bold sm:text-base">{boardTitle}</h1>
               <p className="font-body text-xs arcade-text-muted">Online · You are {mySymbol}</p>
             </div>
-            <span
-              className={cn(
-                'font-body rounded-full px-2 py-0.5 text-xs font-semibold',
-                isMyTurn ? 'bg-[var(--neon-lime)]/15 text-[var(--neon-lime)]' : 'arcade-text-muted'
-              )}
-            >
-              {statusMessage}
-            </span>
+
+            {showLayerScore ? (
+              <div className="flex shrink-0 items-center gap-1.5">
+                <PlayerScore
+                  label={xLabel}
+                  score={xScore}
+                  threshold={config.matchWinThreshold}
+                  active={isXActive}
+                  tone="x"
+                />
+                <span className="font-mono text-xs arcade-text-muted">vs</span>
+                <PlayerScore
+                  label={oLabel}
+                  score={oScore}
+                  threshold={config.matchWinThreshold}
+                  active={isOActive}
+                  tone="o"
+                />
+              </div>
+            ) : (
+              <TurnBadge
+                active={isMyTurn}
+                label={isMyTurn ? 'Your turn' : 'Opponent…'}
+              />
+            )}
           </div>
 
           {(connectionStatus === 'reconnecting' || opponentDisconnected) && (
@@ -268,6 +475,23 @@ export function OnlineGamePage() {
           />
         )}
       </main>
+
+      <Dialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{exitDialogTitle}</DialogTitle>
+            <DialogDescription>{exitDialogDescription}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => setExitDialogOpen(false)} disabled={forfeiting}>
+              Stay
+            </Button>
+            <Button type="button" variant="destructive" onClick={() => void handleForfeit()} disabled={forfeiting}>
+              {forfeiting ? <Loader2 className="size-4 animate-spin" /> : 'Forfeit & exit'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ArcadeShell>
   );
 }

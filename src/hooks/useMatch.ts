@@ -90,6 +90,12 @@ export function useMatch(matchId: string | undefined, userId: string | undefined
     };
   }, [matchId, userId, refresh]);
 
+  const applyMatch = useCallback((next: MatchRow) => {
+    setMatch(next);
+    setConnectionStatus('synced');
+    setError(null);
+  }, []);
+
   const opponentDisconnected =
     match && userId
       ? userId === match.host_id
@@ -103,5 +109,6 @@ export function useMatch(matchId: string | undefined, userId: string | undefined
     error,
     opponentDisconnected,
     refresh,
+    applyMatch,
   };
 }

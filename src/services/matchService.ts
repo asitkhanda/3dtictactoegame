@@ -1,6 +1,17 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import type { MatchRow } from '../types/database';
+import type { MatchRow, Profile } from '../types/database';
 import type { BoardSize } from '../utils/gameConfig';
+
+export function getSymbolForUser(match: MatchRow, userId: string): 'X' | 'O' {
+  const isHost = userId === match.host_id;
+  if (isHost) return match.host_plays_x ? 'X' : 'O';
+  return match.host_plays_x ? 'O' : 'X';
+}
+
+export function getUserIdForSymbol(match: MatchRow, symbol: 'X' | 'O'): string | null {
+  if (symbol === 'X') return match.host_plays_x ? match.host_id : match.guest_id;
+  return match.host_plays_x ? match.guest_id : match.host_id;
+}
 
 export async function createMatch(
   boardSize: BoardSize,
@@ -88,4 +99,30 @@ export async function submitMatchMove(
 
 export function getInviteLink(roomCode: string): string {
   return `${window.location.origin}/join/${roomCode}`;
+}
+
+export async function getOpponentProfile(
+  opponentId: string
+): Promise<{ profile: Pick<Profile, 'username'> | null; error: string | null }> {
+  if (!isSupabaseConfigured) return { profile: null, error: 'Supabase not configured' };
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('username')
+    .eq('id', opponentId)
+    .maybeSingle();
+
+  return { profile: data, error: error?.message ?? null };
+}
+
+export async function forfeitMatch(
+  matchId: string
+): Promise<{ match: MatchRow | null; error: string | null }> {
+  if (!isSupabaseConfigured) return { match: null, error: 'Supabase not configured' };
+
+  const { data, error } = await supabase.rpc('forfeit_match', {
+    p_match_id: matchId,
+  });
+
+  return { match: data, error: error?.message ?? null };
 }
