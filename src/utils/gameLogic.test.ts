@@ -8,6 +8,7 @@ import {
   createInitialState,
   generateCrossLayerLines,
   generateLayerLines,
+  hasLegalMoves,
   isDraw,
 } from './gameLogic';
 
@@ -147,5 +148,59 @@ describe('draw detection', () => {
     });
     expect(isDraw(config2D, board)).toBe(true);
     expect(checkBoardWinner(config2D, board).winner).toBeNull();
+  });
+
+  it('detects stalemate when won layers lock remaining empty cells', () => {
+    const board = createInitialState(config3D).board;
+    const layerWinners = createInitialState(config3D).layerWinners;
+
+    // Layer 0: X wins bottom row; remaining empty cells are locked
+    board[6] = 'X';
+    board[7] = 'X';
+    board[8] = 'X';
+    layerWinners[0] = { winner: 'X', line: [6, 7, 8] };
+
+    // Layer 1: one empty cell left, filling it does not create a line
+    const layer1 = ['X', 'O', 'X', 'X', 'O', 'O', 'O', 'X', null] as const;
+    layer1.forEach((mark, i) => {
+      if (mark !== null) board[9 + i] = mark;
+    });
+
+    // Layer 2: O wins top row; remaining empty cells are locked
+    board[18] = 'O';
+    board[19] = 'O';
+    board[20] = 'O';
+    layerWinners[2] = { winner: 'O', line: [18, 19, 20] };
+
+    expect(hasLegalMoves(config3D, board, layerWinners)).toBe(true);
+    expect(isDraw(config3D, board)).toBe(false);
+
+    const result = applyMove(config3D, board, layerWinners, 17, true)!;
+    expect(result.draw).toBe(true);
+    expect(result.winner).toBeNull();
+    expect(hasLegalMoves(config3D, result.board, result.layerWinners)).toBe(false);
+  });
+
+  it('recognizes an already-stalemate board with a full middle layer', () => {
+    const board = createInitialState(config3D).board;
+    const layerWinners = createInitialState(config3D).layerWinners;
+
+    board[6] = 'X';
+    board[7] = 'X';
+    board[8] = 'X';
+    layerWinners[0] = { winner: 'X', line: [6, 7, 8] };
+
+    const layer1 = ['X', 'O', 'X', 'X', 'O', 'O', 'O', 'X', 'X'] as const;
+    layer1.forEach((mark, i) => {
+      board[9 + i] = mark;
+    });
+
+    board[18] = 'O';
+    board[19] = 'O';
+    board[20] = 'O';
+    layerWinners[2] = { winner: 'O', line: [18, 19, 20] };
+
+    expect(hasLegalMoves(config3D, board, layerWinners)).toBe(false);
+    expect(isDraw(config3D, board)).toBe(false);
   });
 });

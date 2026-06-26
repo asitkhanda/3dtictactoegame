@@ -4,6 +4,7 @@ import {
   BoardState,
   createInitialState,
   getComputerMove,
+  hasLegalMoves,
   LayerResult,
 } from '../utils/gameLogic';
 import {
@@ -158,11 +159,22 @@ export function GameBoard() {
     const delay = config.size >= 6 ? 400 : 750;
     const timer = setTimeout(() => {
       const moveIndex = getComputerMove(config, board, layerWinners);
-      if (moveIndex !== -1) makeMove(moveIndex);
+      if (moveIndex !== -1) {
+        makeMove(moveIndex);
+      } else if (!hasLegalMoves(config, board, layerWinners)) {
+        setDraw(true);
+      }
     }, delay);
 
     return () => clearTimeout(timer);
   }, [config, gameMode, isXNext, winner, draw, board, layerWinners, makeMove]);
+
+  useEffect(() => {
+    if (!config || winner || draw) return;
+    if (!hasLegalMoves(config, board, layerWinners)) {
+      setDraw(true);
+    }
+  }, [config, board, layerWinners, winner, draw]);
 
   const handleCellClick = useCallback(
     (index: number) => {

@@ -165,6 +165,20 @@ export function isDraw(config: GameConfig, board: BoardState): boolean {
   return board.every((cell) => cell !== null);
 }
 
+export function hasLegalMoves(
+  config: GameConfig,
+  board: BoardState,
+  layerWinners: LayerResult[]
+): boolean {
+  for (let i = 0; i < config.cellCount; i++) {
+    if (board[i] !== null) continue;
+    const layerIndex = config.layerOf(i);
+    if (layerWinners[layerIndex]?.winner) continue;
+    return true;
+  }
+  return false;
+}
+
 export interface MoveResult {
   board: BoardState;
   layerWinners: LayerResult[];
@@ -264,7 +278,7 @@ export function applyMove(
     }
   }
 
-  if (isDraw(config, newBoard)) {
+  if (isDraw(config, newBoard) || !hasLegalMoves(config, newBoard, newLayerWinners)) {
     return {
       board: newBoard,
       layerWinners: newLayerWinners,
@@ -335,7 +349,7 @@ export function getComputerMove(
   const isValidMove = (index: number) => {
     if (board[index] !== null) return false;
     const layerIndex = config.layerOf(index);
-    if (layerWinners[layerIndex]?.winner !== null) return false;
+    if (layerWinners[layerIndex]?.winner) return false;
     return true;
   };
 

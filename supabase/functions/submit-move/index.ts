@@ -134,6 +134,20 @@ function isDraw(config: GameConfig, board: BoardState) {
   return board.every((cell) => cell !== null);
 }
 
+function hasLegalMoves(
+  config: GameConfig,
+  board: BoardState,
+  layerWinners: LayerResult[]
+) {
+  for (let i = 0; i < config.cellCount; i++) {
+    if (board[i] !== null) continue;
+    const layerIndex = config.layerOf(i);
+    if (layerWinners[layerIndex]?.winner) continue;
+    return true;
+  }
+  return false;
+}
+
 function applyMove(
   config: GameConfig,
   board: BoardState,
@@ -171,7 +185,7 @@ function applyMove(
     }
   }
 
-  if (isDraw(config, newBoard)) {
+  if (isDraw(config, newBoard) || !hasLegalMoves(config, newBoard, newLayerWinners)) {
     return { board: newBoard, layerWinners: newLayerWinners, winner: null, draw: true, isXNext: !isXNext };
   }
 
