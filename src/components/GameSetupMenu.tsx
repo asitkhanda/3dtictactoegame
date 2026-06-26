@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
   BoardSize,
@@ -95,6 +95,21 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
       <LandingMarquee />
 
       <footer className="relative z-10 px-4 py-4 text-center">
+        <nav className="font-body mb-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs arcade-text-muted">
+          <Link
+            to="/privacy-policy"
+            className="underline-offset-4 transition-colors hover:text-[var(--neon-orange)] hover:underline dark:text-white/55"
+          >
+            Privacy Policy
+          </Link>
+          <span aria-hidden>·</span>
+          <Link
+            to="/terms-of-service"
+            className="underline-offset-4 transition-colors hover:text-[var(--neon-orange)] hover:underline dark:text-white/55"
+          >
+            Terms of Service
+          </Link>
+        </nav>
         <p className="text-xs arcade-text-muted">
           Made with curiosity by{' '}
           <a

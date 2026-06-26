@@ -4,6 +4,8 @@ import { LeaderboardPage } from '../pages/LeaderboardPage';
 import { ProfilePage } from '../pages/ProfilePage';
 import { OnlineGamePage } from '../pages/OnlineGamePage';
 import { JoinMatchPage } from '../pages/JoinMatchPage';
+import { PrivacyPolicyPage } from '../pages/PrivacyPolicyPage';
+import { TermsOfServicePage } from '../pages/TermsOfServicePage';
 
 export function AppRoutes() {
   return (
@@ -13,6 +15,8 @@ export function AppRoutes() {
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/play/:matchId" element={<OnlineGamePage />} />
       <Route path="/join/:code" element={<JoinMatchPage />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+      <Route path="/terms-of-service" element={<TermsOfServicePage />} />
     </Routes>
   );
 }
