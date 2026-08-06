@@ -35,25 +35,28 @@ import {
 import {
   ArrowLeft,
   RotateCcw,
-  Trophy,
   MousePointer2,
   Sparkles,
   Info,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { PlayerScore, TurnBadge } from './game/GameHud';
+import { GameOverOverlay, type GameOverOutcome } from './game/GameOverOverlay';
+import { LayerWinStinger, type LayerWinEvent } from './game/LayerWinStinger';
+import { playArcadeSound } from '../utils/arcadeSound';
+import { useArcadeSound } from '../hooks/useArcadeSound';
 import { cn } from '../lib/utils';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
 import { getLocalOutcome, getPointsForOutcome, recordGameResult } from '../services/scoreService';
-
-const GAME_END_TOAST_ID = 'game-end';
 
 const arcadeIconBtn =
   'size-8 shrink-0 rounded-full arcade-text-muted hover:bg-white/10 hover:text-[var(--arcade-fg)] dark:hover:text-white';
 
 export function GameBoard() {
   const { user, profile, signInWithGoogle, isConfigured } = useAuth();
+  const { muted, toggleMuted } = useArcadeSound();
   const scoredGameRef = useRef<string | null>(null);
   const [session, setSession] = useState<{
     config: GameConfig;
@@ -80,6 +83,9 @@ export function GameBoard() {
   const [draw, setDraw] = useState(false);
   const [lastMoveIndex, setLastMoveIndex] = useState<number | null>(null);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [earnedPoints, setEarnedPoints] = useState<number | null>(null);
+  const [layerEvent, setLayerEvent] = useState<LayerWinEvent | null>(null);
+  const [showGameOver, setShowGameOver] = useState(false);
 
   const boardScale = useBoardScale({
     boardPx: config?.visual.boardPx ?? 300,
@@ -114,18 +120,20 @@ export function GameBoard() {
     setCrossLayerWinningLine(null);
     setWinningLine(null);
     setLastMoveIndex(null);
+    setEarnedPoints(null);
+    setLayerEvent(null);
+    setShowGameOver(false);
   }, []);
 
   const resetGameState = useCallback(() => {
     if (!config) return;
-    toast.dismiss(GAME_END_TOAST_ID);
     applyInitialState(config);
     resetView();
   }, [config, applyInitialState, resetView]);
 
   const exitToMenu = useCallback(() => {
-    toast.dismiss(GAME_END_TOAST_ID);
     setSession(null);
+    setShowGameOver(false);
   }, []);
 
   useEffect(() => {
@@ -145,6 +153,29 @@ export function GameBoard() {
       const result = applyMove(config, board, layerWinners, index, isXNext);
       if (!result) return;
 
+      playArcadeSound(isXNext ? 'placeX' : 'placeO');
+
+      // A layer claimed mid-game is the core mechanic — give it a stinger.
+      if (!result.winner && !result.draw) {
+        const claimedIndex = result.layerWinners.findIndex(
+          (l, i) => l.winner && !layerWinners[i]?.winner
+        );
+        if (claimedIndex >= 0) {
+          const claimedBy = result.layerWinners[claimedIndex].winner as 'X' | 'O';
+          const claimant =
+            gameMode === 'PVE' ? (claimedBy === 'X' ? 'YOURS' : "AI'S") : claimedBy;
+          playArcadeSound(
+            gameMode === 'PVE' && claimedBy === 'O' ? 'layerLost' : 'layerWin'
+          );
+          setLayerEvent({
+            key: Date.now(),
+            layerNumber: claimedIndex + 1,
+            winner: claimedBy,
+            claimant,
+          });
+        }
+      }
+
       setBoard(result.board);
       setLayerWinners(result.layerWinners);
       setCrossLayerWinningLine(result.crossLayerWinningLine);
@@ -154,8 +185,21 @@ export function GameBoard() {
       setIsXNext(result.isXNext);
       setLastMoveIndex(index);
     },
-    [config, board, layerWinners, isXNext, winner, draw]
+    [config, board, layerWinners, isXNext, winner, draw, gameMode]
   );
+
+  useEffect(() => {
+    if (!layerEvent) return;
+    const timer = setTimeout(() => setLayerEvent(null), 1400);
+    return () => clearTimeout(timer);
+  }, [layerEvent]);
+
+  // Let the winning line land visually before the overlay takes the screen.
+  useEffect(() => {
+    if (!winner && !draw) return;
+    const timer = setTimeout(() => setShowGameOver(true), winner ? 950 : 450);
+    return () => clearTimeout(timer);
+  }, [winner, draw]);
 
   useEffect(() => {
     if (!config || gameMode !== 'PVE' || isXNext || winner || draw) return;
@@ -225,14 +269,9 @@ export function GameBoard() {
 
   useEffect(() => {
     if (!config || !gameMode) return;
-
-    if (!winner && !draw) {
-      toast.dismiss(GAME_END_TOAST_ID);
-      return;
-    }
+    if (!winner && !draw) return;
 
     const gameKey = `${gameMode}-${config.size}-${winner ?? 'draw'}-${board.join('')}`;
-    let pointsSuffix = '';
 
     if (
       isConfigured &&
@@ -244,54 +283,11 @@ export function GameBoard() {
       scoredGameRef.current = gameKey;
       const outcome = getLocalOutcome(gameMode, winner, draw);
       if (outcome) {
-        const pointsEarned = getPointsForOutcome(gameMode, outcome);
-        if (pointsEarned !== 0) {
-          pointsSuffix = ` (+${pointsEarned} pts)`;
-        }
+        setEarnedPoints(getPointsForOutcome(gameMode, outcome));
         void recordGameResult(gameMode, config.size, outcome);
       }
     }
-
-    const baseMessage = draw ? 'Draw' : getWinMessage();
-    const guestAction =
-      isConfigured && !user && !draw
-        ? {
-            label: 'Sign in to save',
-            onClick: () => void signInWithGoogle(),
-          }
-        : undefined;
-
-    toast(`${baseMessage}${pointsSuffix}`, {
-      id: GAME_END_TOAST_ID,
-      duration: Infinity,
-      icon: draw ? (
-        <Sparkles className="size-4" />
-      ) : (
-        <Trophy className="size-4 text-[var(--neon-orange)]" />
-      ),
-      action: {
-        label: 'Play again',
-        onClick: resetGameState,
-      },
-      cancel: guestAction ?? {
-        label: 'Change setup',
-        onClick: exitToMenu,
-      },
-    });
-  }, [
-    config,
-    gameMode,
-    winner,
-    draw,
-    board,
-    getWinMessage,
-    resetGameState,
-    exitToMenu,
-    user,
-    profile?.username,
-    isConfigured,
-    signInWithGoogle,
-  ]);
+  }, [config, gameMode, winner, draw, board, user, profile?.username, isConfigured]);
 
   if (!session || !config || !gameMode) {
     return <GameSetupMenu onStart={handleStart} />;
@@ -324,6 +320,34 @@ export function GameBoard() {
     draw ||
     !!layerWinners[layerIndex]?.winner ||
     (gameMode === 'PVE' && !isXNext);
+
+  const overlayOutcome: GameOverOutcome = draw
+    ? 'draw'
+    : gameMode === 'PVE' && winner === 'O'
+      ? 'lose'
+      : 'win';
+  const overlayAccent =
+    !draw && gameMode === 'PVP' && winner === 'O' ? ('violet' as const) : undefined;
+  const overlayTitle = draw
+    ? 'STALEMATE'
+    : gameMode === 'PVE'
+      ? winner === 'X'
+        ? 'YOU WIN'
+        : 'AI WINS'
+      : `${winner} TAKES IT`;
+  const overlaySubtitle = draw
+    ? 'The cube holds. Nobody cracked it.'
+    : config.size === 1
+      ? gameMode === 'PVE'
+        ? winner === 'X'
+          ? 'You conquered the void.'
+          : 'The void consumed you.'
+        : 'The void is claimed.'
+      : crossLayerWinningLine
+        ? 'A clean line straight through the stack.'
+        : config.is3D
+          ? `${config.matchWinThreshold} layers locked down.`
+          : 'Line complete.';
 
   return (
     <ArcadeShell variant="gameplay">
@@ -382,18 +406,20 @@ export function GameBoard() {
                   threshold={config.matchWinThreshold}
                   active={isOActive}
                   tone="o"
+                  thinking={gameMode === 'PVE' && isGameActive && !isXNext}
                 />
               </div>
             ) : (
               <TurnBadge
                 active={isXActive}
+                thinking={gameMode === 'PVE' && isGameActive && !isXNext}
                 label={
                   isXActive
                     ? gameMode === 'PVE'
                       ? 'Your turn'
                       : 'X'
                     : gameMode === 'PVE'
-                      ? 'AI…'
+                      ? 'AI'
                       : 'O'
                 }
               />
@@ -415,6 +441,21 @@ export function GameBoard() {
                 <TooltipContent>Reset camera</TooltipContent>
               </Tooltip>
             )}
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={arcadeIconBtn}
+                  onClick={toggleMuted}
+                  aria-label={muted ? 'Unmute sound' : 'Mute sound'}
+                >
+                  {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{muted ? 'Sound off' : 'Sound on'}</TooltipContent>
+            </Tooltip>
 
             <ThemeToggle className={arcadeIconBtn} />
           </div>
@@ -563,6 +604,33 @@ export function GameBoard() {
           />
         )}
       </main>
+
+      <LayerWinStinger event={layerEvent} />
+
+      {showGameOver && (winner || draw) && (
+        <GameOverOverlay
+          outcome={overlayOutcome}
+          accent={overlayAccent}
+          title={overlayTitle}
+          subtitle={overlaySubtitle}
+          pointsEarned={earnedPoints ?? undefined}
+          primaryLabel="Play again"
+          onPrimary={resetGameState}
+          secondaryLabel="Change mode"
+          onSecondary={exitToMenu}
+          footer={
+            isConfigured && !user && !draw ? (
+              <button
+                type="button"
+                onClick={() => void signInWithGoogle()}
+                className="font-body text-sm text-white/60 underline-offset-4 transition-colors hover:text-white hover:underline"
+              >
+                Sign in to bank your points
+              </button>
+            ) : undefined
+          }
+        />
+      )}
     </ArcadeShell>
   );
 }

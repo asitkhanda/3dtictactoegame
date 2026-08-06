@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Trophy } from 'lucide-react';
+import { ArcadeButton } from '../components/arcade/ArcadeButton';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { SignInButton } from '../components/auth/SignInButton';
@@ -16,7 +17,14 @@ import {
 } from '../components/ui/table';
 import { cn } from '../lib/utils';
 
+const RANK_STYLES: Record<number, { color: string; glow: string }> = {
+  0: { color: 'var(--neon-orange)', glow: 'var(--neon-orange-glow)' },
+  1: { color: 'var(--neon-violet)', glow: 'var(--neon-violet-glow)' },
+  2: { color: 'var(--neon-cyan)', glow: 'rgba(34, 211, 238, 0.5)' },
+};
+
 export function LeaderboardPage() {
+  const navigate = useNavigate();
   const { user, profile, isConfigured } = useAuth();
   const { entries, userRank, loading, error } = useLeaderboard(user?.id);
 
@@ -32,8 +40,11 @@ export function LeaderboardPage() {
               Top 10
             </span>
           </div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Leaderboard
+          <h1
+            className="font-display bg-gradient-to-r from-[var(--neon-orange)] via-[#ff9a4d] to-[var(--neon-violet)] bg-clip-text text-4xl font-extrabold tracking-tight text-transparent uppercase sm:text-5xl"
+            style={{ textShadow: '0 0 40px var(--neon-orange-glow)' }}
+          >
+            Hall of Fame
           </h1>
           <p className="font-body mt-2 arcade-text-muted">
             The sharpest minds across the stack.
@@ -96,7 +107,24 @@ export function LeaderboardPage() {
                       entry.id === user?.id && 'bg-[var(--neon-lime)]/5'
                     )}
                   >
-                    <TableCell className="font-display font-bold tabular-nums">{index + 1}</TableCell>
+                    <TableCell>
+                      {index < 3 ? (
+                        <span
+                          className="font-display inline-flex size-7 items-center justify-center rounded-full border-2 text-sm font-extrabold tabular-nums"
+                          style={{
+                            color: RANK_STYLES[index].color,
+                            borderColor: RANK_STYLES[index].color,
+                            boxShadow: `0 0 10px ${RANK_STYLES[index].glow}`,
+                          }}
+                        >
+                          {index + 1}
+                        </span>
+                      ) : (
+                        <span className="font-display inline-flex size-7 items-center justify-center font-bold tabular-nums arcade-text-muted">
+                          {index + 1}
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Avatar className="size-8">
@@ -119,14 +147,11 @@ export function LeaderboardPage() {
           )}
         </div>
 
-        <p className="text-center">
-          <Link
-            to="/"
-            className="font-body text-sm arcade-text-muted underline-offset-4 hover:text-[var(--neon-orange)] hover:underline"
-          >
-            Back to play
-          </Link>
-        </p>
+        <div className="text-center">
+          <ArcadeButton variant="orange" size="md" onClick={() => navigate('/')}>
+            Claim your spot
+          </ArcadeButton>
+        </div>
       </main>
     </ArcadeShell>
   );

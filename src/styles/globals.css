@@ -541,6 +541,44 @@ html {
   animation-play-state: paused !important;
 }
 
+@keyframes hud-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 0.24;
+  }
+}
+
+.hud-active-glow {
+  animation: hud-glow-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes hud-dot-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+.hud-thinking-dot {
+  animation: hud-dot-bounce 0.9s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-active-glow,
+  .hud-thinking-dot {
+    animation: none;
+  }
+}
+
 .legal-prose {
   font-size: 0.9375rem;
   line-height: 1.7;

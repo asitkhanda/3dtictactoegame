@@ -36,6 +36,10 @@ import {
   DialogTitle,
 } from '../components/ui/dialog';
 import { cn } from '../lib/utils';
+import { GameOverOverlay, type GameOverOutcome } from '../components/game/GameOverOverlay';
+import { LayerWinStinger, type LayerWinEvent } from '../components/game/LayerWinStinger';
+import { playArcadeSound } from '../utils/arcadeSound';
+import { getPointsForOutcome } from '../services/scoreService';
 
 export function OnlineGamePage() {
   const { matchId } = useParams<{ matchId: string }>();
@@ -51,8 +55,10 @@ export function OnlineGamePage() {
   const [exitDialogOpen, setExitDialogOpen] = useState(false);
   const [forfeiting, setForfeiting] = useState(false);
   const prevBoardRef = useRef<BoardState | null>(null);
+  const prevLayerWinnersRef = useRef<LayerResult[] | null>(null);
   const forfeitInitiatedRef = useRef(false);
-  const forfeitToastShownRef = useRef(false);
+  const [layerEvent, setLayerEvent] = useState<LayerWinEvent | null>(null);
+  const [showGameOver, setShowGameOver] = useState(false);
 
   const config = useMemo(
     () => (match ? deserializeGameConfig(match.config) : null),
@@ -95,6 +101,8 @@ export function OnlineGamePage() {
       for (let i = 0; i < match.board.length; i++) {
         if (prev[i] === null && match.board[i] !== null) {
           setLastMoveIndex(i);
+          // Covers both my optimistic move and the opponent's realtime move.
+          playArcadeSound(match.board[i] === 'X' ? 'placeX' : 'placeO');
           break;
         }
       }
@@ -103,29 +111,48 @@ export function OnlineGamePage() {
   }, [match?.board]);
 
   useEffect(() => {
+    const next = match?.layer_winners as LayerResult[] | undefined;
+    if (!next || !match) return;
+
+    const prev = prevLayerWinnersRef.current;
+    prevLayerWinnersRef.current = next;
+    if (!prev || match.status !== 'active' || match.winner || match.draw) return;
+
+    const claimedIndex = next.findIndex((l, i) => l.winner && !prev[i]?.winner);
+    if (claimedIndex < 0) return;
+
+    const claimedBy = next[claimedIndex].winner as 'X' | 'O';
+    const mine = mySymbol === claimedBy;
+    playArcadeSound(mine ? 'layerWin' : 'layerLost');
+    setLayerEvent({
+      key: Date.now(),
+      layerNumber: claimedIndex + 1,
+      winner: claimedBy,
+      claimant: mine ? 'YOURS' : opponentLabel.toUpperCase(),
+    });
+  }, [match, mySymbol, opponentLabel]);
+
+  useEffect(() => {
+    if (!layerEvent) return;
+    const timer = setTimeout(() => setLayerEvent(null), 1400);
+    return () => clearTimeout(timer);
+  }, [layerEvent]);
+
+  // Let the final position land before the overlay takes the screen.
+  useEffect(() => {
+    if (match?.status !== 'finished' || (!match.winner && !match.draw)) {
+      setShowGameOver(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowGameOver(true), match.winner ? 950 : 450);
+    return () => clearTimeout(timer);
+  }, [match?.status, match?.winner, match?.draw]);
+
+  useEffect(() => {
     if (lastMoveIndex === null) return;
     const timer = setTimeout(() => setLastMoveIndex(null), 1500);
     return () => clearTimeout(timer);
   }, [lastMoveIndex]);
-
-  useEffect(() => {
-    if (
-      !match ||
-      !user ||
-      match.status !== 'finished' ||
-      match.abandon_reason !== 'voluntary_forfeit' ||
-      forfeitInitiatedRef.current ||
-      forfeitToastShownRef.current
-    ) {
-      return;
-    }
-
-    const mySym = getSymbolForUser(match, user.id);
-    if (match.winner === mySym) {
-      forfeitToastShownRef.current = true;
-      toast.success('Opponent forfeited — you win!');
-    }
-  }, [match, user]);
 
   const boardScale = useBoardScale({
     boardPx: config?.visual.boardPx ?? 300,
@@ -362,6 +389,28 @@ export function OnlineGamePage() {
         ? 'Your turn.'
         : "Opponent's turn.";
 
+  const overlayOutcome: GameOverOutcome = draw
+    ? 'draw'
+    : winner === mySymbol
+      ? 'win'
+      : 'lose';
+  const overlayTitle = draw ? 'STALEMATE' : winner === mySymbol ? 'YOU WIN' : 'YOU LOSE';
+  const overlaySubtitle = draw
+    ? 'The cube holds. Nobody cracked it.'
+    : match.abandon_reason === 'voluntary_forfeit'
+      ? winner === mySymbol
+        ? `${opponentLabel} forfeited the match.`
+        : 'You forfeited the match.'
+      : winner === mySymbol
+        ? `${opponentLabel} has been out-stacked.`
+        : `${opponentLabel} out-stacked you.`;
+  const overlayPoints = user
+    ? getPointsForOutcome(
+        'PVP_ONLINE',
+        draw ? 'draw' : winner === mySymbol ? 'win' : 'loss'
+      )
+    : undefined;
+
   return (
     <ArcadeShell variant="gameplay">
       <div className="sr-only" aria-live="polite" aria-atomic="true">
@@ -387,6 +436,7 @@ export function OnlineGamePage() {
                   threshold={config.matchWinThreshold}
                   active={isXActive}
                   tone="x"
+                  thinking={isGameActive && !isMyTurn && mySymbol !== 'X'}
                 />
                 <span className="font-mono text-xs arcade-text-muted">vs</span>
                 <PlayerScore
@@ -395,12 +445,14 @@ export function OnlineGamePage() {
                   threshold={config.matchWinThreshold}
                   active={isOActive}
                   tone="o"
+                  thinking={isGameActive && !isMyTurn && mySymbol !== 'O'}
                 />
               </div>
             ) : (
               <TurnBadge
                 active={isMyTurn}
-                label={isMyTurn ? 'Your turn' : 'Opponent…'}
+                thinking={isGameActive && !isMyTurn}
+                label={isMyTurn ? 'Your turn' : 'Opponent'}
               />
             )}
           </div>
@@ -498,6 +550,21 @@ export function OnlineGamePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <LayerWinStinger event={layerEvent} />
+
+      {showGameOver && (winner || draw) && (
+        <GameOverOverlay
+          outcome={overlayOutcome}
+          title={overlayTitle}
+          subtitle={overlaySubtitle}
+          pointsEarned={overlayPoints}
+          primaryLabel="New game"
+          onPrimary={() => navigate('/')}
+          secondaryLabel="View board"
+          onSecondary={() => setShowGameOver(false)}
+        />
+      )}
     </ArcadeShell>
   );
 }

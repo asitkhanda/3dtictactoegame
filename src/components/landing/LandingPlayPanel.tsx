@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 import type { ReactNode } from 'react';
 import { Bot, Globe, Users, HelpCircle } from 'lucide-react';
+import { playArcadeSound } from '../../utils/arcadeSound';
 import { BoardSize, GameMode, KONAMI_BOARD_SIZES } from '../../utils/gameConfig';
 import { cn } from '../../lib/utils';
 import {
@@ -34,7 +35,10 @@ function PlayTile({ title, subtitle, icon, variant, onClick, delay }: PlayTilePr
   return (
     <motion.button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        playArcadeSound('tap');
+        onClick();
+      }}
       initial={{ opacity: 0, y: 24, rotate: isOrange ? -1.5 : 1.5 }}
       animate={{ opacity: 1, y: 0, rotate: isOrange ? -1.5 : 1.5 }}
       whileHover={{
@@ -154,7 +158,7 @@ export function LandingPlayPanel({
       <div className="flex flex-col gap-3 sm:flex-row">
         <PlayTile
           title="VS AI"
-          subtitle="Strategic solo run"
+          subtitle="Beat the bot"
           icon={<Bot className="size-6" />}
           variant="orange"
           onClick={() => onStart('PVE')}
@@ -162,7 +166,7 @@ export function LandingPlayPanel({
         />
         <PlayTile
           title="2 PLAYER"
-          subtitle="Pass & play local"
+          subtitle="Same-screen showdown"
           icon={<Users className="size-6" />}
           variant="violet"
           onClick={() => onStart('PVP')}
@@ -173,16 +177,22 @@ export function LandingPlayPanel({
       <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
         <button
           type="button"
-          onClick={onCreateOnline}
-          className="font-body arcade-glass flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--neon-lime)]/30 bg-[var(--neon-lime)]/10 px-4 text-sm font-semibold text-[var(--neon-lime)] transition-colors hover:bg-[var(--neon-lime)]/20"
+          onClick={() => {
+            playArcadeSound('tap');
+            onCreateOnline();
+          }}
+          className="font-body arcade-glass flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--neon-lime)]/30 bg-[var(--neon-lime)]/10 px-4 text-sm font-semibold text-[var(--neon-lime)] transition-[background-color,transform] duration-100 hover:bg-[var(--neon-lime)]/20 active:scale-95"
         >
           <Globe className="size-4" />
-          Play online
+          Challenge the world
         </button>
         <button
           type="button"
-          onClick={onJoinOnline}
-          className="font-body arcade-glass flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/15 px-4 text-sm font-semibold arcade-text-muted transition-colors hover:bg-white/5 hover:text-white"
+          onClick={() => {
+            playArcadeSound('tap');
+            onJoinOnline();
+          }}
+          className="font-body arcade-glass flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/15 px-4 text-sm font-semibold arcade-text-muted transition-[background-color,color,transform] duration-100 hover:bg-white/5 hover:text-white active:scale-95"
         >
           Join with code
         </button>
