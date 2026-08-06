@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type TouchEvent } from 'react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { Sparkles } from 'lucide-react';
 import {
   KONAMI_SEQUENCE,

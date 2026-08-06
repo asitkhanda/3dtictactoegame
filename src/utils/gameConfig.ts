@@ -1,7 +1,12 @@
 import { computeBoardOuterPx } from './boardLayout';
+import {
+  type BoardSize,
+  type ViewMode,
+  type GameRulesConfig,
+  createGameRulesConfig,
+} from '../../supabase/functions/_shared/gameRules';
 
-export type BoardSize = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
-export type ViewMode = '2D' | '3D';
+export type { BoardSize, ViewMode };
 export type GameMode = 'PVP' | 'PVE' | 'PVP_ONLINE';
 
 export const DEFAULT_BOARD_SIZE: BoardSize = 3;
@@ -15,17 +20,7 @@ export interface VisualScale {
   gapPx: number;
 }
 
-export interface GameConfig {
-  size: BoardSize;
-  viewMode: ViewMode;
-  winLength: number;
-  layerCount: number;
-  matchWinThreshold: number;
-  cellCount: number;
-  cellsPerLayer: number;
-  is3D: boolean;
-  index: (x: number, y: number, z: number) => number;
-  layerOf: (index: number) => number;
+export interface GameConfig extends GameRulesConfig {
   visual: VisualScale;
 }
 
@@ -40,38 +35,19 @@ const VISUAL_CELL_SCALES: Record<BoardSize, Omit<VisualScale, 'boardPx'>> = {
   8: { cellPx: 34, layerSpacing: 64, pieceStackCount: 6, gapPx: 4 },
 };
 
-const VISUAL_SCALES: Record<BoardSize, VisualScale> = Object.fromEntries(
-  (Object.entries(VISUAL_CELL_SCALES) as [BoardSize, Omit<VisualScale, 'boardPx'>][]).map(
-    ([size, scale]) => [
-      size,
-      {
-        ...scale,
-        boardPx: computeBoardOuterPx(Number(size), scale.cellPx, scale.gapPx),
-      },
-    ]
-  )
+const VISUAL_SCALES = Object.fromEntries(
+  Object.entries(VISUAL_CELL_SCALES).map(([size, scale]) => [
+    size,
+    {
+      ...scale,
+      boardPx: computeBoardOuterPx(Number(size), scale.cellPx, scale.gapPx),
+    },
+  ])
 ) as Record<BoardSize, VisualScale>;
 
 export function createGameConfig(size: BoardSize, viewMode: ViewMode): GameConfig {
-  const is3D = viewMode === '3D';
-  const layerCount = is3D ? size : 1;
-  const cellsPerLayer = size * size;
-  const cellCount = is3D ? size * size * size : cellsPerLayer;
-
-  const index = (x: number, y: number, z: number) => x + y * size + z * cellsPerLayer;
-  const layerOf = (cellIndex: number) => Math.floor(cellIndex / cellsPerLayer);
-
   return {
-    size,
-    viewMode,
-    winLength: size,
-    layerCount,
-    matchWinThreshold: is3D && size > 1 ? size - 1 : 0,
-    cellCount,
-    cellsPerLayer,
-    is3D,
-    index,
-    layerOf,
+    ...createGameRulesConfig(size, viewMode),
     visual: VISUAL_SCALES[size],
   };
 }

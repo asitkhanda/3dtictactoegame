@@ -40,7 +40,7 @@ import {
   Sparkles,
   Info,
 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { PlayerScore, TurnBadge } from './game/GameHud';
 import { cn } from '../lib/utils';
 import { ThemeToggle } from './ThemeToggle';

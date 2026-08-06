@@ -199,7 +199,7 @@ export function useBoardViewport({
     [enabled, setZoom]
   );
 
-  const getTouchDistance = (touches: TouchList) => {
+  const getTouchDistance = (touches: React.TouchList) => {
     const [a, b] = [touches[0], touches[1]];
     const dx = a.clientX - b.clientX;
     const dy = a.clientY - b.clientY;

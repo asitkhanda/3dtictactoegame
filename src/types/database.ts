@@ -1,4 +1,4 @@
-export interface Profile {
+export type Profile = {
   id: string;
   username: string | null;
   display_name: string | null;
@@ -14,12 +14,12 @@ export interface Profile {
 
 export type MatchStatus = 'waiting' | 'active' | 'finished' | 'abandoned';
 
-export interface MatchConfig {
+export type MatchConfig = {
   size: number;
   viewMode: '2D' | '3D';
 }
 
-export interface MatchRow {
+export type MatchRow = {
   id: string;
   room_code: string;
   host_id: string;
@@ -42,7 +42,7 @@ export interface MatchRow {
   updated_at: string;
 }
 
-export interface GameResult {
+export type GameResult = {
   id: string;
   player_id: string;
   opponent_id: string | null;
@@ -54,27 +54,44 @@ export interface GameResult {
   created_at: string;
 }
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       profiles: {
         Row: Profile;
         Insert: Partial<Profile> & { id: string };
         Update: Partial<Profile>;
+        Relationships: [];
       };
       matches: {
         Row: MatchRow;
         Insert: Partial<MatchRow> & { host_id: string; room_code: string; config: MatchConfig };
         Update: Partial<MatchRow>;
+        Relationships: [];
       };
       game_results: {
         Row: GameResult;
         Insert: Partial<GameResult> & { player_id: string; mode: string; board_size: number; outcome: string; points_earned: number };
         Update: Partial<GameResult>;
+        Relationships: [];
       };
     };
+    Views: { [_ in never]: never };
+    Enums: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
     Functions: {
       set_username: { Args: { desired_username: string }; Returns: Profile };
+      apply_match_result: {
+        Args: {
+          p_player_id: string;
+          p_opponent_id: string;
+          p_board_size: number;
+          p_match_id: string;
+          p_outcome: string;
+          p_points: number;
+        };
+        Returns: undefined;
+      };
       record_game_result: {
         Args: {
           p_mode: string;

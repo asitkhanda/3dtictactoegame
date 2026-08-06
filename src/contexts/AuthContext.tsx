@@ -23,7 +23,7 @@ interface AuthContextValue {
   refreshProfile: () => Promise<void>;
   setUsername: (username: string) => Promise<{ error: string | null }>;
   checkUsernameAvailable: (username: string) => Promise<boolean>;
-  updateProfile: (fields: { display_name?: string; avatar_url?: string }) => Promise<{ error: string | null }>;
+  updateProfile: (fields: { display_name?: string | null; avatar_url?: string | null }) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -135,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateProfile = useCallback(
-    async (fields: { display_name?: string; avatar_url?: string }) => {
+    async (fields: { display_name?: string | null; avatar_url?: string | null }) => {
       if (!session?.user?.id || !isSupabaseConfigured) {
         return { error: 'Not authenticated' };
       }
