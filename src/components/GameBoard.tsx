@@ -104,10 +104,8 @@ export function GameBoard() {
       rotationSensitivity: rotationMultiplier,
     });
 
-  const resetGameState = useCallback(() => {
-    if (!config) return;
-    toast.dismiss(GAME_END_TOAST_ID);
-    const state = createInitialState(config);
+  const applyInitialState = useCallback((forConfig: GameConfig) => {
+    const state = createInitialState(forConfig);
     setBoard(state.board);
     setLayerWinners(state.layerWinners);
     setIsXNext(true);
@@ -116,8 +114,14 @@ export function GameBoard() {
     setCrossLayerWinningLine(null);
     setWinningLine(null);
     setLastMoveIndex(null);
+  }, []);
+
+  const resetGameState = useCallback(() => {
+    if (!config) return;
+    toast.dismiss(GAME_END_TOAST_ID);
+    applyInitialState(config);
     resetView();
-  }, [config, resetView]);
+  }, [config, applyInitialState, resetView]);
 
   const exitToMenu = useCallback(() => {
     toast.dismiss(GAME_END_TOAST_ID);
@@ -171,6 +175,9 @@ export function GameBoard() {
 
   useEffect(() => {
     if (!config || winner || draw) return;
+    // The board briefly belongs to a previous config while a new session is
+    // initializing; a length mismatch would make every cell read as occupied.
+    if (board.length !== config.cellCount) return;
     if (!hasLegalMoves(config, board, layerWinners)) {
       setDraw(true);
     }
@@ -185,7 +192,11 @@ export function GameBoard() {
   );
 
   const handleStart = (size: BoardSize, mode: GameMode) => {
-    setSession({ config: createGameConfig(size, '3D'), gameMode: mode });
+    const nextConfig = createGameConfig(size, '3D');
+    // Initialize the board in the same render batch as the session so no
+    // effect ever observes the new config alongside a stale board.
+    applyInitialState(nextConfig);
+    setSession({ config: nextConfig, gameMode: mode });
   };
 
   const getWinMessage = useCallback(() => {
