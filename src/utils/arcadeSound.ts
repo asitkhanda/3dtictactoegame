@@ -81,9 +81,41 @@ const VIBRATIONS: Record<ArcadeSoundName, number | number[]> = {
   invalid: 50,
 };
 
+// iOS exposes no vibration API to web pages, but toggling a hidden
+// <input type="checkbox" switch> produces the system's light haptic tick on
+// iOS 17.4+ Safari/WebKit. Single fixed tick only — no patterns.
+let iosHapticInput: HTMLInputElement | null = null;
+
+function iosHapticTick(times: number): void {
+  if (!iosHapticInput) {
+    iosHapticInput = document.createElement('input');
+    iosHapticInput.type = 'checkbox';
+    iosHapticInput.setAttribute('switch', '');
+    iosHapticInput.setAttribute('aria-hidden', 'true');
+    iosHapticInput.tabIndex = -1;
+    iosHapticInput.style.cssText =
+      'position:fixed;top:-100px;left:-100px;width:1px;height:1px;opacity:0;pointer-events:none;';
+    document.body.appendChild(iosHapticInput);
+  }
+  for (let i = 0; i < times; i++) {
+    if (i === 0) {
+      iosHapticInput.click();
+    } else {
+      setTimeout(() => iosHapticInput?.click(), i * 120);
+    }
+  }
+}
+
 function vibrateFor(name: ArcadeSoundName): void {
   try {
-    navigator.vibrate?.(VIBRATIONS[name]);
+    if (typeof navigator.vibrate === 'function') {
+      navigator.vibrate(VIBRATIONS[name]);
+      return;
+    }
+    // Best-effort iOS fallback: approximate patterns with repeated ticks.
+    const pattern = VIBRATIONS[name];
+    const pulses = Array.isArray(pattern) ? Math.ceil(pattern.length / 2) + 1 : 1;
+    iosHapticTick(name === 'tap' ? 1 : pulses);
   } catch {
     /* ignore */
   }

@@ -486,7 +486,7 @@ export function GameBoard() {
 
       <main className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-auto px-3 py-2 sm:px-4">
         {!winner && !draw && (config.is3D || showZoomControls) && (
-          <p className="font-body pointer-events-none mb-1 flex items-center gap-1.5 text-xs arcade-text-muted">
+          <p className="font-body pointer-events-none absolute top-2 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 text-xs whitespace-nowrap arcade-text-muted">
             <MousePointer2 className="size-3.5 shrink-0" aria-hidden />
             {config.is3D
               ? showCameraJoystick
