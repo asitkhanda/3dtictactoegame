@@ -2,6 +2,7 @@ import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 import { usePageVisible } from '../../hooks/usePageVisible';
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion';
+import { useIsMobile } from '../ui/use-mobile';
 import { cn } from '../../lib/utils';
 
 const PARTICLE_COUNT = { landing: 36, gameplay: 18 } as const;
@@ -30,11 +31,15 @@ export function LandingBackground({ variant = 'landing' }: LandingBackgroundProp
     setMounted(true);
   }, []);
 
+  const isMobile = useIsMobile();
   const isDark = mounted ? resolvedTheme !== 'light' : true;
-  const particleCount = PARTICLE_COUNT[variant];
+  // During gameplay on phones the GPU budget belongs to the 3D board: keep
+  // the neon look but freeze the ambient animations and skip the particles.
+  const staticGameplay = isGameplay && isMobile;
+  const particleCount = staticGameplay ? 0 : PARTICLE_COUNT[variant];
   const blobOpacity = isGameplay ? 0.45 : isDark ? 0.6 : 0.35;
   const gridOpacity = isGameplay ? 0.22 : isDark ? 0.3 : 0.18;
-  const paused = reducedMotion || !pageVisible;
+  const paused = reducedMotion || !pageVisible || staticGameplay;
 
   const bgStyle = isDark
     ? { backgroundColor: 'var(--landing-bg)' }

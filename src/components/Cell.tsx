@@ -28,9 +28,9 @@ const PieceX = memo(function PieceX({
   const layerSpacing = thickness / stackCount;
   const barHeight = Math.max(2, Math.round(size * 0.08));
 
-  const bodyColor = isWinning
-    ? 'bg-[var(--neon-orange)] shadow-[0_0_10px_var(--neon-orange-glow)]'
-    : 'bg-[var(--neon-orange)]';
+  // Glow lives on the top cap only — a shadow on every stacked layer is
+  // invisible behind the stack but costs a composited surface each on mobile.
+  const bodyColor = 'bg-[var(--neon-orange)]';
   const topColor = isWinning ? 'bg-[var(--player-x-light)]' : 'bg-[#ff9a4d]';
 
   const layers = useMemo(
@@ -47,8 +47,12 @@ const PieceX = memo(function PieceX({
       style={{ width: size * 0.6, height: size * 0.6, transformStyle: 'preserve-3d' }}
     >
       <div
-        className="absolute inset-0 bg-black/60 blur-md rounded-full opacity-60"
-        style={{ transform: 'translateZ(0px) scale(0.9)' }}
+        className="absolute inset-0 rounded-full opacity-60"
+        style={{
+          transform: 'translateZ(0px) scale(0.9)',
+          background:
+            'radial-gradient(circle, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 55%, transparent 78%)',
+        }}
       />
       <div className="relative w-full h-full" style={{ transformStyle: 'preserve-3d' }}>
         {layers.map((z, i) => (
@@ -105,9 +109,8 @@ const PieceO = memo(function PieceO({
   const layerSpacing = thickness / stackCount;
   const borderWidth = Math.max(3, Math.round(size * 0.12));
 
-  const bodyColor = isWinning
-    ? 'border-[var(--neon-violet)] shadow-[0_0_10px_var(--neon-violet-glow)]'
-    : 'border-[var(--neon-violet)]';
+  // Glow lives on the top cap only — see PieceX.
+  const bodyColor = 'border-[var(--neon-violet)]';
   const topColor = isWinning ? 'border-[var(--player-o-light)]' : 'border-[#c084fc]';
 
   const layers = useMemo(
@@ -124,8 +127,12 @@ const PieceO = memo(function PieceO({
       style={{ width: size * 0.6, height: size * 0.6, transformStyle: 'preserve-3d' }}
     >
       <div
-        className="absolute inset-0 bg-black/60 blur-md rounded-full opacity-60"
-        style={{ transform: 'translateZ(0px) scale(0.9)' }}
+        className="absolute inset-0 rounded-full opacity-60"
+        style={{
+          transform: 'translateZ(0px) scale(0.9)',
+          background:
+            'radial-gradient(circle, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 55%, transparent 78%)',
+        }}
       />
       <div className="relative w-full h-full" style={{ transformStyle: 'preserve-3d' }}>
         {layers.map((z, i) => (

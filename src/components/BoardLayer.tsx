@@ -24,6 +24,8 @@ export interface BoardLayerProps {
   layerOpacity?: number;
   cellOpacity?: number;
   lastMoveIndex?: number | null;
+  /** Drops GPU-heavy effects (backdrop blur) on weak devices. */
+  lowPerf?: boolean;
 }
 
 function winningLineKeyForLayer(
@@ -80,11 +82,12 @@ function BoardLayerComponent({
   layerOpacity = 50,
   cellOpacity = 15,
   lastMoveIndex = null,
+  lowPerf = false,
 }: BoardLayerProps) {
   const startIndex = layerIndex * cellsPerLayer;
   const padding = getBoardPadding(gapPx);
   const fittedCellPx = computeFittedCellPx(boardPx, size, gapPx, cellPx);
-  const layerStyles = getBoardLayerStyles(layerOpacity);
+  const layerStyles = getBoardLayerStyles(layerOpacity, { backdropBlur: !lowPerf });
 
   const zOffset = (layerIndex - (totalLayers - 1) / 2) * spacingZ;
   const isLastMoveLayer =
@@ -175,6 +178,7 @@ function boardLayerPropsAreEqual(
     prev.showLabel === next.showLabel &&
     prev.layerOpacity === next.layerOpacity &&
     prev.cellOpacity === next.cellOpacity &&
+    prev.lowPerf === next.lowPerf &&
     prev.onCellClick === next.onCellClick &&
     boardSliceEqual(prev.board, next.board, start, prev.cellsPerLayer) &&
     winningLineKeyForLayer(prev.winningLine, start, end) ===

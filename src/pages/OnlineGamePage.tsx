@@ -445,7 +445,12 @@ export function OnlineGamePage() {
                     cellPx={config.visual.cellPx}
                     gapPx={config.visual.gapPx}
                     spacingZ={config.visual.layerSpacing}
-                    pieceStackCount={config.visual.pieceStackCount}
+                    pieceStackCount={
+                      isMobile
+                        ? Math.min(4, config.visual.pieceStackCount)
+                        : config.visual.pieceStackCount
+                    }
+                    lowPerf={isMobile}
                     board={board}
                     onCellClick={(idx) => void handleCellClick(idx)}
                     winningLine={layerWinners[i]?.line}

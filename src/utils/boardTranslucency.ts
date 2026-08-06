@@ -45,10 +45,17 @@ export function layerOpacityToCellAlpha(layerOpacity: number): number {
 }
 
 /** Layer panel fill, border, blur, and shadow scaled to translucency (0 = fully clear). */
-const boardLayerStyleCache = new Map<number, CSSProperties>();
+const boardLayerStyleCache = new Map<string, CSSProperties>();
 
-export function getBoardLayerStyles(layerOpacity: number): CSSProperties {
-  const cached = boardLayerStyleCache.get(layerOpacity);
+export function getBoardLayerStyles(
+  layerOpacity: number,
+  options?: { backdropBlur?: boolean }
+): CSSProperties {
+  // backdrop-filter forces the GPU to re-composite everything behind each
+  // layer every frame — far too expensive on mobile, so callers disable it.
+  const backdropBlur = options?.backdropBlur !== false;
+  const cacheKey = `${layerOpacity}:${backdropBlur}`;
+  const cached = boardLayerStyleCache.get(cacheKey);
   if (cached) return cached;
 
   if (layerOpacity <= 0) {
@@ -59,12 +66,12 @@ export function getBoardLayerStyles(layerOpacity: number): CSSProperties {
       backdropFilter: 'none',
       WebkitBackdropFilter: 'none',
     } satisfies CSSProperties;
-    boardLayerStyleCache.set(layerOpacity, empty);
+    boardLayerStyleCache.set(cacheKey, empty);
     return empty;
   }
 
   const borderAlpha = Math.max(28, Math.round(layerOpacity * 0.65));
-  const blurPx = Math.round((layerOpacity / 100) * 4);
+  const blurPx = backdropBlur ? Math.round((layerOpacity / 100) * 4) : 0;
   const shadowAlpha = Math.round(layerOpacity * 0.12);
 
   const styles = {
@@ -78,7 +85,7 @@ export function getBoardLayerStyles(layerOpacity: number): CSSProperties {
     WebkitBackdropFilter: blurPx > 0 ? `blur(${blurPx}px)` : 'none',
   } satisfies CSSProperties;
 
-  boardLayerStyleCache.set(layerOpacity, styles);
+  boardLayerStyleCache.set(cacheKey, styles);
   return styles;
 }
 

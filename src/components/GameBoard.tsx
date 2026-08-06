@@ -502,7 +502,12 @@ export function GameBoard() {
                       cellPx={config.visual.cellPx}
                       gapPx={config.visual.gapPx}
                       spacingZ={config.visual.layerSpacing}
-                      pieceStackCount={config.visual.pieceStackCount}
+                      pieceStackCount={
+                        isMobile
+                          ? Math.min(4, config.visual.pieceStackCount)
+                          : config.visual.pieceStackCount
+                      }
+                      lowPerf={isMobile}
                       board={board}
                       onCellClick={handleCellClick}
                       winningLine={

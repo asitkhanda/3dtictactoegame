@@ -342,6 +342,9 @@ export function useBoardViewport({
       }
 
       if (pointersRef.current.size === 1) {
+        // Touch drags never produce a click, so a suppress flag armed by a
+        // previous rotation would otherwise swallow the next legitimate tap.
+        suppressClickRef.current = false;
         // Track from anywhere — including cells. Below the drag threshold
         // this stays a tap and the cell's click fires normally.
         dragRef.current = {
@@ -382,7 +385,11 @@ export function useBoardViewport({
         if (moved < DRAG_THRESHOLD_PX) return;
         drag.dragging = true;
         suppressClickRef.current = true;
-        viewportRef.current?.setPointerCapture(e.pointerId);
+        try {
+          viewportRef.current?.setPointerCapture(e.pointerId);
+        } catch {
+          // capture is best-effort; the pointer may already be gone
+        }
       }
 
       const now = performance.now();
@@ -404,11 +411,13 @@ export function useBoardViewport({
     [enabled, is3D, applyRotationDelta, setZoom]
   );
 
-  const handlePointerUp = useCallback(
-    (e: React.PointerEvent) => {
-      pointersRef.current.delete(e.pointerId);
+  const endPointer = useCallback(
+    (pointerId: number) => {
+      // Idempotent: the release may arrive via both the element handler and
+      // the window fallback listener.
+      if (!pointersRef.current.delete(pointerId)) return;
       try {
-        viewportRef.current?.releasePointerCapture(e.pointerId);
+        viewportRef.current?.releasePointerCapture(pointerId);
       } catch {
         // pointer may already be released
       }
@@ -416,10 +425,10 @@ export function useBoardViewport({
       if (pinchRef.current && pointersRef.current.size === 1) {
         // Pinch → single finger: resume rotating without lifting.
         pinchRef.current = null;
-        const [pointerId] = pointersRef.current.keys();
-        const remaining = pointersRef.current.get(pointerId)!;
+        const [remainingId] = pointersRef.current.keys();
+        const remaining = pointersRef.current.get(remainingId)!;
         dragRef.current = {
-          pointerId,
+          pointerId: remainingId,
           startX: remaining.x,
           startY: remaining.y,
           lastX: remaining.x,
@@ -440,6 +449,27 @@ export function useBoardViewport({
     },
     [startMomentum]
   );
+
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      endPointer(e.pointerId);
+    },
+    [endPointer]
+  );
+
+  // Releases can land outside the viewport (finger slides off the board, tap
+  // ends over the header, a cancelled gesture). Without this fallback a
+  // phantom pointer stays tracked and every later tap reads as a pinch.
+  useEffect(() => {
+    if (!enabled) return;
+    const end = (e: PointerEvent) => endPointer(e.pointerId);
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
+    return () => {
+      window.removeEventListener('pointerup', end);
+      window.removeEventListener('pointercancel', end);
+    };
+  }, [enabled, endPointer]);
 
   // A drag that rotated the board must not also place a piece: cells are
   // buttons and their click fires on release, so swallow it in capture phase.
