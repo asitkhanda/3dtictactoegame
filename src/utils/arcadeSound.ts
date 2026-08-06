@@ -123,9 +123,35 @@ function vibrateFor(name: ArcadeSoundName): void {
 
 let audioContext: AudioContext | null = null;
 let masterGain: GainNode | null = null;
+let resumeHooksInstalled = false;
+
+function tryResume(): void {
+  // iOS reports the WebKit-specific state 'interrupted' after a screen lock
+  // or phone call — not 'suspended' — so compare against 'running' instead of
+  // matching specific paused states.
+  if (audioContext && audioContext.state !== 'running') {
+    void audioContext.resume();
+  }
+}
+
+function installResumeHooks(): void {
+  if (resumeHooksInstalled) return;
+  resumeHooksInstalled = true;
+  // iOS only honors resume() inside a user gesture, so retry on every tap and
+  // whenever the page returns to the foreground.
+  window.addEventListener('pointerdown', tryResume, { passive: true });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') tryResume();
+  });
+}
 
 function getContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
+  if (audioContext && audioContext.state === 'closed') {
+    // iOS occasionally hard-closes background contexts; rebuild from scratch.
+    audioContext = null;
+    masterGain = null;
+  }
   if (!audioContext) {
     const Ctor: typeof AudioContext | undefined =
       window.AudioContext ??
@@ -135,11 +161,9 @@ function getContext(): AudioContext | null {
     masterGain = audioContext.createGain();
     masterGain.gain.value = MASTER_VOLUME;
     masterGain.connect(audioContext.destination);
+    installResumeHooks();
   }
-  // Contexts start suspended until a user gesture; resume is a no-op when running.
-  if (audioContext.state === 'suspended') {
-    void audioContext.resume();
-  }
+  tryResume();
   return audioContext;
 }
 

@@ -536,6 +536,17 @@ html {
   outline-offset: -2px;
 }
 
+/* Remove iOS Safari's ~300ms double-tap-to-zoom click delay on controls.
+   Pinch zoom on page content is unaffected. */
+button,
+a,
+input,
+select,
+textarea,
+[role='button'] {
+  touch-action: manipulation;
+}
+
 .arcade-animations-paused,
 .arcade-animations-paused * {
   animation-play-state: paused !important;
