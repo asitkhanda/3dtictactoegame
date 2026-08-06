@@ -9,6 +9,20 @@ const MIN_ZOOM = 0.4;
 const MAX_ZOOM = 2.5;
 const ZOOM_STEP = 0.15;
 
+// Pixels of movement before a pointer-down is treated as a rotation drag
+// instead of a tap on a cell.
+const DRAG_THRESHOLD_PX = 8;
+// Wheel deltaY → zoom factor exponents. Trackpad pinch (ctrlKey) reports
+// smaller deltas, so it gets a stronger factor.
+const WHEEL_ZOOM_FACTOR = 0.0022;
+const PINCH_WHEEL_ZOOM_FACTOR = 0.01;
+// Momentum: exponential decay time constant and cutoffs (px/ms).
+const MOMENTUM_DECAY_MS = 220;
+const MOMENTUM_START_SPEED = 0.08;
+const MOMENTUM_STOP_SPEED = 0.02;
+// A fling only counts if the pointer was still moving just before release.
+const MOMENTUM_MAX_IDLE_MS = 80;
+
 interface UseBoardViewportOptions {
   baseScale: number;
   is3D: boolean;
@@ -24,6 +38,15 @@ function easeOutCubic(t: number) {
   return 1 - Math.pow(1 - t, 3);
 }
 
+interface DragState {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  lastX: number;
+  lastY: number;
+  dragging: boolean;
+}
+
 export function useBoardViewport({
   baseScale,
   is3D,
@@ -35,12 +58,19 @@ export function useBoardViewport({
 
   const rotationRef = useRef(CAMERA_PRESETS.default.rotation);
   const zoomRef = useRef(1);
-  const isDraggingRef = useRef(false);
-  const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
-  const pinchRef = useRef<{ distance: number; zoom: number } | null>(null);
+  const targetZoomRef = useRef(1);
   const rafRef = useRef<number | null>(null);
   const rotationSensitivityRef = useRef(rotationSensitivity);
   const transitionRafRef = useRef<number | null>(null);
+  const zoomRafRef = useRef<number | null>(null);
+  const momentumRafRef = useRef<number | null>(null);
+
+  const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const dragRef = useRef<DragState | null>(null);
+  const pinchRef = useRef<{ distance: number; zoom: number } | null>(null);
+  const velocityRef = useRef({ vx: 0, vy: 0, lastMoveAt: 0 });
+  const suppressClickRef = useRef(false);
+
   const [activePreset, setActivePreset] = useState<CameraPresetId | null>('default');
 
   useEffect(() => {
@@ -77,10 +107,33 @@ export function useBoardViewport({
     applyRotation();
   }, [applyRotation]);
 
+  const cancelTransition = useCallback(() => {
+    if (transitionRafRef.current !== null) {
+      cancelAnimationFrame(transitionRafRef.current);
+      transitionRafRef.current = null;
+    }
+  }, []);
+
+  const cancelMomentum = useCallback(() => {
+    if (momentumRafRef.current !== null) {
+      cancelAnimationFrame(momentumRafRef.current);
+      momentumRafRef.current = null;
+    }
+  }, []);
+
+  const cancelZoomAnimation = useCallback(() => {
+    if (zoomRafRef.current !== null) {
+      cancelAnimationFrame(zoomRafRef.current);
+      zoomRafRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
       if (transitionRafRef.current !== null) cancelAnimationFrame(transitionRafRef.current);
+      if (zoomRafRef.current !== null) cancelAnimationFrame(zoomRafRef.current);
+      if (momentumRafRef.current !== null) cancelAnimationFrame(momentumRafRef.current);
     };
   }, []);
 
@@ -89,25 +142,53 @@ export function useBoardViewport({
   const setZoom = useCallback(
     (next: number) => {
       zoomRef.current = clampZoom(next);
+      targetZoomRef.current = zoomRef.current;
       applyScale();
     },
     [applyScale]
   );
 
+  // Eases the applied zoom toward targetZoomRef; wheel events just move the
+  // target, which keeps trackpads and notched wheels equally smooth.
+  const startZoomAnimation = useCallback(() => {
+    if (zoomRafRef.current !== null) return;
+    let lastTime = performance.now();
+
+    const step = (now: number) => {
+      const dt = Math.min(64, now - lastTime);
+      lastTime = now;
+      const diff = targetZoomRef.current - zoomRef.current;
+
+      if (Math.abs(diff) < 0.001) {
+        zoomRef.current = targetZoomRef.current;
+        applyScale();
+        zoomRafRef.current = null;
+        return;
+      }
+
+      zoomRef.current += diff * Math.min(1, dt * 0.012);
+      applyScale();
+      zoomRafRef.current = requestAnimationFrame(step);
+    };
+
+    zoomRafRef.current = requestAnimationFrame(step);
+  }, [applyScale]);
+
+  const zoomToward = useCallback(
+    (target: number) => {
+      targetZoomRef.current = clampZoom(target);
+      startZoomAnimation();
+    },
+    [startZoomAnimation]
+  );
+
   const zoomIn = useCallback(() => {
-    setZoom(zoomRef.current + ZOOM_STEP);
-  }, [setZoom]);
+    zoomToward(targetZoomRef.current + ZOOM_STEP);
+  }, [zoomToward]);
 
   const zoomOut = useCallback(() => {
-    setZoom(zoomRef.current - ZOOM_STEP);
-  }, [setZoom]);
-
-  const cancelTransition = useCallback(() => {
-    if (transitionRafRef.current !== null) {
-      cancelAnimationFrame(transitionRafRef.current);
-      transitionRafRef.current = null;
-    }
-  }, []);
+    zoomToward(targetZoomRef.current - ZOOM_STEP);
+  }, [zoomToward]);
 
   const setView = useCallback(
     (presetId: CameraPresetId, options?: { resetZoom?: boolean }) => {
@@ -115,11 +196,14 @@ export function useBoardViewport({
       if (!preset) return;
 
       cancelTransition();
+      cancelMomentum();
+      cancelZoomAnimation();
 
       const start = { ...rotationRef.current };
       const target = { ...preset.rotation };
       const startZoom = zoomRef.current;
-      const targetZoom = options?.resetZoom !== false && presetId === 'default' ? 1 : zoomRef.current;
+      const resetZoom = options?.resetZoom !== false && presetId === 'default';
+      const targetZoom = resetZoom ? 1 : zoomRef.current;
       const startTime = performance.now();
 
       setActivePreset(presetId);
@@ -134,8 +218,9 @@ export function useBoardViewport({
           y: lerp(start.y, target.y, eased),
         };
 
-        if (options?.resetZoom !== false && presetId === 'default') {
+        if (resetZoom) {
           zoomRef.current = lerp(startZoom, targetZoom, eased);
+          targetZoomRef.current = zoomRef.current;
         }
 
         applyRotation();
@@ -145,8 +230,9 @@ export function useBoardViewport({
           transitionRafRef.current = requestAnimationFrame(animate);
         } else {
           rotationRef.current = { ...target };
-          if (options?.resetZoom !== false && presetId === 'default') {
+          if (resetZoom) {
             zoomRef.current = targetZoom;
+            targetZoomRef.current = targetZoom;
           }
           applyRotation();
           applyScale();
@@ -156,7 +242,7 @@ export function useBoardViewport({
 
       transitionRafRef.current = requestAnimationFrame(animate);
     },
-    [applyRotation, applyScale, cancelTransition]
+    [applyRotation, applyScale, cancelTransition, cancelMomentum, cancelZoomAnimation]
   );
 
   const resetView = useCallback(() => {
@@ -184,108 +270,184 @@ export function useBoardViewport({
   const rotateBy = useCallback(
     (deltaX: number, deltaY: number) => {
       if (!enabled || !is3D) return;
+      cancelMomentum();
       applyRotationDelta(deltaX, deltaY);
     },
-    [enabled, is3D, applyRotationDelta]
+    [enabled, is3D, applyRotationDelta, cancelMomentum]
   );
+
+  const startMomentum = useCallback(() => {
+    const { vx, vy, lastMoveAt } = velocityRef.current;
+    if (performance.now() - lastMoveAt > MOMENTUM_MAX_IDLE_MS) return;
+    if (Math.hypot(vx, vy) < MOMENTUM_START_SPEED) return;
+
+    let velocityX = vx;
+    let velocityY = vy;
+    let lastTime = performance.now();
+
+    const step = (now: number) => {
+      const dt = Math.min(64, now - lastTime);
+      lastTime = now;
+
+      applyRotationDelta(velocityX * dt, velocityY * dt);
+
+      const decay = Math.exp(-dt / MOMENTUM_DECAY_MS);
+      velocityX *= decay;
+      velocityY *= decay;
+
+      if (Math.hypot(velocityX, velocityY) < MOMENTUM_STOP_SPEED) {
+        momentumRafRef.current = null;
+        return;
+      }
+      momentumRafRef.current = requestAnimationFrame(step);
+    };
+
+    momentumRafRef.current = requestAnimationFrame(step);
+  }, [applyRotationDelta]);
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
       if (!enabled) return;
       e.preventDefault();
-      const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
-      setZoom(zoomRef.current + delta);
+      if (pinchRef.current) return;
+      const factor = e.ctrlKey ? PINCH_WHEEL_ZOOM_FACTOR : WHEEL_ZOOM_FACTOR;
+      zoomToward(targetZoomRef.current * Math.exp(-e.deltaY * factor));
     },
-    [enabled, setZoom]
+    [enabled, zoomToward]
   );
 
-  const getTouchDistance = (touches: React.TouchList) => {
-    const [a, b] = [touches[0], touches[1]];
-    const dx = a.clientX - b.clientX;
-    const dy = a.clientY - b.clientY;
-    return Math.hypot(dx, dy);
+  const getPinchDistance = () => {
+    const points = [...pointersRef.current.values()];
+    if (points.length < 2) return 0;
+    return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
   };
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (!enabled || !is3D) return;
-      if ((e.target as HTMLElement).closest('button')) return;
+      if (!enabled) return;
 
-      isDraggingRef.current = true;
-      lastPointerRef.current = { x: e.clientX, y: e.clientY };
-      e.currentTarget.setPointerCapture(e.pointerId);
+      pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      cancelMomentum();
+
+      if (pointersRef.current.size === 2) {
+        // Second finger down: switch from (potential) rotation to pinch.
+        dragRef.current = null;
+        suppressClickRef.current = true;
+        cancelZoomAnimation();
+        pinchRef.current = {
+          distance: getPinchDistance(),
+          zoom: zoomRef.current,
+        };
+        return;
+      }
+
+      if (pointersRef.current.size === 1) {
+        // Track from anywhere — including cells. Below the drag threshold
+        // this stays a tap and the cell's click fires normally.
+        dragRef.current = {
+          pointerId: e.pointerId,
+          startX: e.clientX,
+          startY: e.clientY,
+          lastX: e.clientX,
+          lastY: e.clientY,
+          dragging: false,
+        };
+        velocityRef.current = { vx: 0, vy: 0, lastMoveAt: performance.now() };
+      }
     },
-    [enabled, is3D]
+    [enabled, cancelMomentum, cancelZoomAnimation]
   );
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
-      if (!enabled || !is3D || !isDraggingRef.current || !lastPointerRef.current) return;
+      if (!enabled) return;
+      const tracked = pointersRef.current.get(e.pointerId);
+      if (!tracked) return;
 
-      const deltaX = e.clientX - lastPointerRef.current.x;
-      const deltaY = e.clientY - lastPointerRef.current.y;
+      pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (pinchRef.current && pointersRef.current.size >= 2) {
+        const distance = getPinchDistance();
+        if (pinchRef.current.distance > 0 && distance > 0) {
+          setZoom(pinchRef.current.zoom * (distance / pinchRef.current.distance));
+        }
+        return;
+      }
+
+      const drag = dragRef.current;
+      if (!drag || drag.pointerId !== e.pointerId || !is3D) return;
+
+      if (!drag.dragging) {
+        const moved = Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY);
+        if (moved < DRAG_THRESHOLD_PX) return;
+        drag.dragging = true;
+        suppressClickRef.current = true;
+        viewportRef.current?.setPointerCapture(e.pointerId);
+      }
+
+      const now = performance.now();
+      const deltaX = e.clientX - drag.lastX;
+      const deltaY = e.clientY - drag.lastY;
+      drag.lastX = e.clientX;
+      drag.lastY = e.clientY;
+
+      const dt = Math.max(1, now - velocityRef.current.lastMoveAt);
+      const alpha = 0.25;
+      velocityRef.current = {
+        vx: velocityRef.current.vx * (1 - alpha) + (deltaX / dt) * alpha,
+        vy: velocityRef.current.vy * (1 - alpha) + (deltaY / dt) * alpha,
+        lastMoveAt: now,
+      };
+
       applyRotationDelta(deltaX, deltaY);
-      lastPointerRef.current = { x: e.clientX, y: e.clientY };
     },
-    [enabled, is3D, applyRotationDelta]
+    [enabled, is3D, applyRotationDelta, setZoom]
   );
 
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    isDraggingRef.current = false;
-    lastPointerRef.current = null;
-    pinchRef.current = null;
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {
-      // pointer may already be released
-    }
-  }, []);
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      pointersRef.current.delete(e.pointerId);
+      try {
+        viewportRef.current?.releasePointerCapture(e.pointerId);
+      } catch {
+        // pointer may already be released
+      }
 
-  const handleTouchStart = useCallback(
-    (e: React.TouchEvent) => {
-      if (!enabled) return;
-      const el = e.currentTarget as HTMLElement;
-      el.setAttribute('data-touch-count', String(e.touches.length));
-
-      if (e.touches.length === 2) {
-        isDraggingRef.current = false;
-        lastPointerRef.current = null;
-        pinchRef.current = {
-          distance: getTouchDistance(e.touches),
-          zoom: zoomRef.current,
+      if (pinchRef.current && pointersRef.current.size === 1) {
+        // Pinch → single finger: resume rotating without lifting.
+        pinchRef.current = null;
+        const [pointerId] = pointersRef.current.keys();
+        const remaining = pointersRef.current.get(pointerId)!;
+        dragRef.current = {
+          pointerId,
+          startX: remaining.x,
+          startY: remaining.y,
+          lastX: remaining.x,
+          lastY: remaining.y,
+          dragging: true,
         };
+        velocityRef.current = { vx: 0, vy: 0, lastMoveAt: performance.now() };
+        return;
+      }
+
+      if (pointersRef.current.size === 0) {
+        pinchRef.current = null;
+        if (dragRef.current?.dragging) {
+          startMomentum();
+        }
+        dragRef.current = null;
       }
     },
-    [enabled]
+    [startMomentum]
   );
 
-  const handleTouchMove = useCallback(
-    (e: React.TouchEvent) => {
-      if (!enabled) return;
-      const el = e.currentTarget as HTMLElement;
-      el.setAttribute('data-touch-count', String(e.touches.length));
-
-      if (e.touches.length === 2 && pinchRef.current) {
-        e.preventDefault();
-        const distance = getTouchDistance(e.touches);
-        const ratio = distance / pinchRef.current.distance;
-        setZoom(pinchRef.current.zoom * ratio);
-      }
-    },
-    [enabled, setZoom]
-  );
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    const el = e.currentTarget as HTMLElement;
-    el.setAttribute('data-touch-count', String(e.touches.length));
-
-    if (e.touches.length < 2) {
-      pinchRef.current = null;
-    }
-    if (e.touches.length === 0) {
-      isDraggingRef.current = false;
-      lastPointerRef.current = null;
-    }
+  // A drag that rotated the board must not also place a piece: cells are
+  // buttons and their click fires on release, so swallow it in capture phase.
+  const handleClickCapture = useCallback((e: React.MouseEvent) => {
+    if (!suppressClickRef.current) return;
+    suppressClickRef.current = false;
+    e.preventDefault();
+    e.stopPropagation();
   }, []);
 
   useEffect(() => {
@@ -302,9 +464,7 @@ export function useBoardViewport({
         onPointerMove: handlePointerMove,
         onPointerUp: handlePointerUp,
         onPointerCancel: handlePointerUp,
-        onTouchStart: handleTouchStart,
-        onTouchMove: handleTouchMove,
-        onTouchEnd: handleTouchEnd,
+        onClickCapture: handleClickCapture,
       }
     : {};
 

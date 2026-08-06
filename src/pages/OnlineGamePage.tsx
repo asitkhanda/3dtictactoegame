@@ -419,13 +419,14 @@ export function OnlineGamePage() {
       </header>
 
       <main className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-auto px-3 py-2 sm:px-4">
-        <div className="relative flex flex-1 items-center justify-center">
+        <div className="relative flex flex-1 items-center justify-center self-stretch">
           <div
             ref={viewportRef}
             className={cn(
-              'relative flex flex-1 items-center justify-center',
-              config.is3D && 'touch-none cursor-grab active:cursor-grabbing'
+              'relative flex flex-1 touch-none items-center justify-center self-stretch',
+              config.is3D && 'cursor-grab active:cursor-grabbing'
             )}
+            style={{ transformOrigin: 'center center' }}
             {...viewportHandlers}
           >
             <div

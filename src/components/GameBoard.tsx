@@ -449,15 +449,15 @@ export function GameBoard() {
             <MousePointer2 className="size-3.5 shrink-0" aria-hidden />
             {config.is3D
               ? showCameraJoystick
-                ? 'Joystick to rotate · Scroll or buttons to zoom'
-                : 'Pinch to zoom · Drag to rotate'
+                ? 'Drag to rotate · Scroll to zoom'
+                : 'Drag to rotate · Pinch to zoom'
               : isMobile
                 ? 'Pinch or panel buttons to zoom'
                 : 'Scroll or panel buttons to zoom'}
           </p>
         )}
 
-        <div className="relative flex flex-1 items-center justify-center">
+        <div className="relative flex flex-1 items-center justify-center self-stretch">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 flex items-center justify-center"
@@ -475,8 +475,8 @@ export function GameBoard() {
           <div
             ref={viewportRef}
             className={cn(
-              'relative flex flex-1 items-center justify-center',
-              config.is3D && 'touch-none cursor-grab active:cursor-grabbing'
+              'relative flex flex-1 touch-none items-center justify-center self-stretch',
+              config.is3D && 'cursor-grab active:cursor-grabbing'
             )}
             style={{ transformOrigin: 'center center' }}
             {...viewportHandlers}
