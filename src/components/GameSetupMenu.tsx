@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
+import gsap from 'gsap';
 import {
   BoardSize,
   GameMode,
@@ -9,6 +9,7 @@ import {
   DEFAULT_BOARD_SIZE,
 } from '../utils/gameConfig';
 import { useKonamiUnlock } from '../hooks/useKonamiUnlock';
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import { ArcadeShell } from './ArcadeShell';
 import { AppHeader } from './layout/AppHeader';
 import { LandingHero } from './landing/LandingHero';
@@ -28,6 +29,8 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
   const [selectedSize, setSelectedSize] = useState<BoardSize>(DEFAULT_BOARD_SIZE);
   const [createOpen, setCreateOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = usePrefersReducedMotion();
   const {
     konamiUnlocked,
     handleKonamiTouchStart,
@@ -38,90 +41,109 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
   const config = createGameConfig(selectedSize, '3D');
   const rulesPreview = getRulesPreview(config);
 
+  // GSAP owns the entrance choreography: slab wipe → title lines rise →
+  // tags fade → mode rows cascade → preview settles.
+  useEffect(() => {
+    if (reducedMotion) return;
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+      tl.from('[data-hero-slab]', { xPercent: 115, duration: 0.7 })
+        .from(
+          '[data-hero-line] > span',
+          { yPercent: 115, duration: 0.55, stagger: 0.1 },
+          '-=0.35'
+        )
+        .from('[data-hero-tag]', { opacity: 0, x: -20, duration: 0.4, stagger: 0.08 }, '-=0.3')
+        .from('[data-mode-row]', { opacity: 0, x: -36, duration: 0.4, stagger: 0.06 }, '-=0.35')
+        .from('[data-hero-side]', { opacity: 0, scale: 0.96, duration: 0.6 }, '-=0.5');
+    }, rootRef);
+    return () => ctx.revert();
+  }, [reducedMotion]);
+
   return (
     <ArcadeShell variant="landing">
-      <AppHeader />
+      <div ref={rootRef} className="relative flex min-h-dvh flex-col">
+        {/* Signature diagonal slab behind the board preview */}
+        <div
+          data-hero-slab
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] bg-[var(--neon-orange)] lg:block"
+          style={{ clipPath: 'polygon(30% 0, 100% 0, 100% 100%, 0 100%)' }}
+        />
 
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 pt-20 pb-6 sm:px-6 sm:pt-24 lg:grid lg:grid-cols-2 lg:grid-rows-[auto_auto] lg:items-start lg:gap-x-10 lg:gap-y-8 lg:pt-28 lg:pb-10">
-        <motion.section
-          className="order-1 lg:col-start-1 lg:row-start-1"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4 }}
-        >
-          <LandingHero
-            konamiUnlocked={konamiUnlocked}
-            onKonamiTouchStart={handleKonamiTouchStart}
-            onKonamiTouchEnd={handleKonamiTouchEnd}
-            onKonamiButtonTap={handleKonamiButtonTap}
-          />
-        </motion.section>
+        <AppHeader />
 
-        <motion.section
-          className="order-2 flex items-center justify-center py-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-stretch lg:py-0"
-          initial={{ opacity: 0, scale: 0.92 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.6, type: 'spring', stiffness: 90 }}
-        >
-          <LandingBoardPreview />
-        </motion.section>
+        <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 pt-20 pb-6 sm:px-6 sm:pt-24 lg:grid lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-x-12 lg:pt-16 lg:pb-3">
+          <div className="flex flex-col gap-8 lg:gap-5">
+            <LandingHero
+              konamiUnlocked={konamiUnlocked}
+              onKonamiTouchStart={handleKonamiTouchStart}
+              onKonamiTouchEnd={handleKonamiTouchEnd}
+              onKonamiButtonTap={handleKonamiButtonTap}
+            />
 
-        <div className="order-3 lg:col-start-1 lg:row-start-2">
-          <ResumeGameBanner />
-          <LandingPlayPanel
-            selectedSize={selectedSize}
-            onSizeChange={setSelectedSize}
-            konamiUnlocked={konamiUnlocked}
-            rulesPreview={rulesPreview}
-            onStart={(mode) => onStart(selectedSize, mode)}
-            onCreateOnline={() => setCreateOpen(true)}
-            onJoinOnline={() => setJoinOpen(true)}
-          />
-        </div>
-      </main>
+            <div>
+              <ResumeGameBanner />
+              <LandingPlayPanel
+                selectedSize={selectedSize}
+                onSizeChange={setSelectedSize}
+                konamiUnlocked={konamiUnlocked}
+                rulesPreview={rulesPreview}
+                onStart={(mode) => onStart(selectedSize, mode)}
+                onCreateOnline={() => setCreateOpen(true)}
+                onJoinOnline={() => setJoinOpen(true)}
+              />
+            </div>
+          </div>
 
-      <CreateRoomDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        boardSize={selectedSize}
-        onCreated={(matchId) => navigate(`/play/${matchId}`)}
-      />
-      <JoinRoomDialog
-        open={joinOpen}
-        onOpenChange={setJoinOpen}
-        onJoined={(matchId) => navigate(`/play/${matchId}`)}
-      />
+          <div data-hero-side className="flex items-center justify-center py-4 lg:py-0">
+            <LandingBoardPreview />
+          </div>
+        </main>
 
-      <LandingMarquee />
+        <CreateRoomDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          boardSize={selectedSize}
+          onCreated={(matchId) => navigate(`/play/${matchId}`)}
+        />
+        <JoinRoomDialog
+          open={joinOpen}
+          onOpenChange={setJoinOpen}
+          onJoined={(matchId) => navigate(`/play/${matchId}`)}
+        />
 
-      <footer className="relative z-10 px-4 py-4 text-center">
-        <nav className="font-body mb-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs arcade-text-muted">
-          <Link
-            to="/privacy-policy"
-            className="underline-offset-4 transition-colors hover:text-[var(--neon-orange)] hover:underline dark:text-white/55"
-          >
-            Privacy Policy
-          </Link>
-          <span aria-hidden>·</span>
-          <Link
-            to="/terms-of-service"
-            className="underline-offset-4 transition-colors hover:text-[var(--neon-orange)] hover:underline dark:text-white/55"
-          >
-            Terms of Service
-          </Link>
-        </nav>
-        <p className="text-xs arcade-text-muted">
-          Made with curiosity by{' '}
-          <a
-            href="https://asit.space/"
-            target="_blank"
-            rel="noreferrer"
-            className="underline-offset-4 transition-colors hover:text-[var(--neon-orange)] hover:underline dark:text-white/55"
-          >
-            Asit Khanda
-          </a>
-        </p>
-      </footer>
+        <LandingMarquee />
+
+        <footer className="relative z-10 px-4 py-2.5 text-center">
+          <nav className="font-body mb-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-[var(--arcade-fg)]/75">
+            <Link
+              to="/privacy-policy"
+              className="underline-offset-4 transition-colors hover:text-[var(--neon-orange)] hover:underline"
+            >
+              Privacy Policy
+            </Link>
+            <span aria-hidden>·</span>
+            <Link
+              to="/terms-of-service"
+              className="underline-offset-4 transition-colors hover:text-[var(--neon-orange)] hover:underline"
+            >
+              Terms of Service
+            </Link>
+          </nav>
+          <p className="text-xs arcade-text-muted">
+            Made with curiosity by{' '}
+            <a
+              href="https://asit.space/"
+              target="_blank"
+              rel="noreferrer"
+              className="underline-offset-4 transition-colors hover:text-[var(--neon-orange)] hover:underline"
+            >
+              Asit Khanda
+            </a>
+          </p>
+        </footer>
+      </div>
     </ArcadeShell>
   );
 }

@@ -41,7 +41,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react';
-import { PlayerScore, TurnBadge } from './game/GameHud';
+import { VersusScoreboard } from './game/GameHud';
 import { GameOverOverlay, type GameOverOutcome } from './game/GameOverOverlay';
 import { LayerWinStinger, type LayerWinEvent } from './game/LayerWinStinger';
 import { playArcadeSound } from '../utils/arcadeSound';
@@ -52,7 +52,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getLocalOutcome, getPointsForOutcome, recordGameResult } from '../services/scoreService';
 
 const arcadeIconBtn =
-  'size-8 shrink-0 rounded-full arcade-text-muted hover:bg-white/10 hover:text-[var(--arcade-fg)] dark:hover:text-white';
+  'size-8 shrink-0 rounded-full text-[var(--arcade-fg)]/80 hover:bg-white/10 hover:text-[var(--arcade-fg)]';
 
 export function GameBoard() {
   const { user, profile, signInWithGoogle, isConfigured } = useAuth();
@@ -356,7 +356,7 @@ export function GameBoard() {
       </div>
 
       <header className="sticky top-0 z-50 shrink-0 px-3 py-2 sm:px-4">
-        <div className="arcade-panel mx-auto w-full max-w-3xl rounded-2xl px-2 py-1.5 sm:px-3">
+        <div className="mx-auto w-full max-w-5xl px-1">
           <div className="flex items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -389,41 +389,6 @@ export function GameBoard() {
                 )}
               </div>
             </div>
-
-            {showLayerScore ? (
-              <div className="flex shrink-0 items-center gap-1.5">
-                <PlayerScore
-                  label={gameMode === 'PVE' ? 'You' : 'X'}
-                  score={xScore}
-                  threshold={config.matchWinThreshold}
-                  active={isXActive}
-                  tone="x"
-                />
-                <span className="font-mono text-xs arcade-text-muted">vs</span>
-                <PlayerScore
-                  label={gameMode === 'PVE' ? 'AI' : 'O'}
-                  score={oScore}
-                  threshold={config.matchWinThreshold}
-                  active={isOActive}
-                  tone="o"
-                  thinking={gameMode === 'PVE' && isGameActive && !isXNext}
-                />
-              </div>
-            ) : (
-              <TurnBadge
-                active={isXActive}
-                thinking={gameMode === 'PVE' && isGameActive && !isXNext}
-                label={
-                  isXActive
-                    ? gameMode === 'PVE'
-                      ? 'Your turn'
-                      : 'X'
-                    : gameMode === 'PVE'
-                      ? 'AI'
-                      : 'O'
-                }
-              />
-            )}
 
             {config.is3D && (
               <Tooltip>
@@ -464,7 +429,7 @@ export function GameBoard() {
             <button
               type="button"
               onClick={() => setRulesOpen((open) => !open)}
-              className="font-body flex shrink-0 items-center gap-1 rounded-lg px-1.5 py-0.5 text-xs arcade-text-muted transition-colors hover:bg-white/5 hover:text-[var(--arcade-fg)] dark:hover:text-white"
+              className="font-body flex shrink-0 items-center gap-1 rounded-lg px-1.5 py-0.5 text-xs text-[var(--arcade-fg)]/80 transition-colors hover:bg-white/5 hover:text-[var(--arcade-fg)]"
               aria-expanded={rulesOpen}
               aria-controls="game-rules-hint"
             >
@@ -484,9 +449,22 @@ export function GameBoard() {
         </div>
       </header>
 
-      <main className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-auto px-3 py-2 sm:px-4">
+      <main className="relative flex min-h-0 flex-1 flex-col items-center overflow-auto px-3 py-2 sm:px-4">
+        <VersusScoreboard
+          className="z-20 mt-0.5 shrink-0"
+          xLabel={gameMode === 'PVE' ? 'You' : 'X'}
+          oLabel={gameMode === 'PVE' ? 'AI' : 'O'}
+          xScore={xScore}
+          oScore={oScore}
+          threshold={showLayerScore ? config.matchWinThreshold : 0}
+          xActive={isXActive}
+          oActive={isOActive}
+          thinking={gameMode === 'PVE' && isGameActive && !isXNext}
+          thinkingSide="o"
+        />
+
         {!winner && !draw && (config.is3D || showZoomControls) && (
-          <p className="font-body pointer-events-none absolute top-2 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 text-xs whitespace-nowrap arcade-text-muted">
+          <p className="font-body pointer-events-none mt-2 flex shrink-0 items-center gap-1.5 text-xs whitespace-nowrap arcade-text-muted">
             <MousePointer2 className="size-3.5 shrink-0" aria-hidden />
             {config.is3D
               ? showCameraJoystick
@@ -498,7 +476,7 @@ export function GameBoard() {
           </p>
         )}
 
-        <div className="relative flex flex-1 items-center justify-center self-stretch">
+        <div className="relative flex min-h-0 flex-1 items-center justify-center self-stretch">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 flex items-center justify-center"

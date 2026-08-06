@@ -1,14 +1,9 @@
-import { motion } from 'motion/react';
 import type { ReactNode } from 'react';
-import { Bot, Globe, Users, HelpCircle } from 'lucide-react';
-import { playArcadeSound } from '../../utils/arcadeSound';
+import { Bot, Globe, Users, KeyRound, HelpCircle, ChevronRight } from 'lucide-react';
 import { BoardSize, GameMode, KONAMI_BOARD_SIZES } from '../../utils/gameConfig';
 import { cn } from '../../lib/utils';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '../ui/popover';
+import { playArcadeSound } from '../../utils/arcadeSound';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 interface LandingPlayPanelProps {
   selectedSize: BoardSize;
@@ -20,65 +15,57 @@ interface LandingPlayPanelProps {
   onJoinOnline: () => void;
 }
 
-interface PlayTileProps {
+type RowAccent = 'red' | 'ice' | 'ivory';
+
+interface ModeRowProps {
+  index: string;
   title: string;
   subtitle: string;
   icon: ReactNode;
-  variant: 'orange' | 'violet';
+  accent: RowAccent;
   onClick: () => void;
-  delay: number;
 }
 
-function PlayTile({ title, subtitle, icon, variant, onClick, delay }: PlayTileProps) {
-  const isOrange = variant === 'orange';
+const ACCENT_HOVER: Record<RowAccent, string> = {
+  red: 'hover:bg-[var(--neon-orange)] hover:text-white',
+  ice: 'hover:bg-[var(--neon-violet)] hover:text-white dark:hover:text-[#0f1923]',
+  ivory: 'hover:bg-[var(--neon-lime)] hover:text-[var(--on-accent)]',
+};
 
+// Valorant-menu row: number tag, title, chevron; the whole bar fills with its
+// accent on hover and shifts right. GSAP staggers these in via [data-mode-row].
+function ModeRow({ index, title, subtitle, icon, accent, onClick }: ModeRowProps) {
   return (
-    <motion.button
+    <button
       type="button"
+      data-mode-row
       onClick={() => {
         playArcadeSound('tap');
         onClick();
       }}
-      initial={{ opacity: 0, y: 24, rotate: isOrange ? -1.5 : 1.5 }}
-      animate={{ opacity: 1, y: 0, rotate: isOrange ? -1.5 : 1.5 }}
-      whileHover={{
-        scale: 1.04,
-        rotate: 0,
-        boxShadow: isOrange
-          ? '0 20px 50px var(--neon-orange-glow)'
-          : '0 20px 50px var(--neon-violet-glow)',
-        transition: { duration: 0.2, delay: 0, type: 'spring', stiffness: 400, damping: 28 },
-      }}
-      whileTap={{
-        scale: 0.97,
-        transition: { duration: 0.1, delay: 0 },
-      }}
-      transition={{
-        opacity: { delay, type: 'spring', stiffness: 200, damping: 18 },
-        y: { delay, type: 'spring', stiffness: 200, damping: 18 },
-        rotate: { delay, type: 'spring', stiffness: 200, damping: 18 },
-      }}
       className={cn(
-        'group relative flex min-h-[5.5rem] flex-1 flex-col justify-between overflow-hidden rounded-2xl p-5 text-left',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40',
-        isOrange
-          ? 'bg-gradient-to-br from-[var(--neon-orange)] to-[#ea580c]'
-          : 'bg-gradient-to-br from-[var(--neon-violet)] to-[#7c3aed]'
+        'chamfer group relative flex w-full items-center gap-4 px-5 py-2.5 text-left arcade-text',
+        'bg-[color-mix(in_oklch,var(--arcade-fg),transparent_93%)]',
+        'transition-[background-color,color,transform] duration-150',
+        'hover:translate-x-1.5 active:translate-x-2 active:scale-[0.995]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon-orange)]/70',
+        ACCENT_HOVER[accent]
       )}
     >
-      <div className="absolute -top-6 -right-6 size-24 rounded-full bg-white/15 blur-2xl transition-transform duration-500 group-hover:scale-150" />
-      <div className="relative flex items-start justify-between gap-3">
-        <div>
-          <p className="font-display text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
-            {title}
-          </p>
-          <p className="font-body mt-1 text-sm text-white/75">{subtitle}</p>
-        </div>
-        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-black/20 text-white">
-          {icon}
+      <span className="font-hero w-9 shrink-0 text-xl text-[var(--neon-orange)] transition-colors group-hover:text-current">
+        {index}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="font-display block text-lg leading-tight font-extrabold tracking-[0.08em] uppercase sm:text-xl">
+          {title}
         </span>
-      </div>
-    </motion.button>
+        <span className="font-body block text-xs opacity-70">{subtitle}</span>
+      </span>
+      <span className="flex shrink-0 items-center gap-2">
+        <span className="opacity-60">{icon}</span>
+        <ChevronRight className="size-4 opacity-50 transition-transform duration-150 group-hover:translate-x-1 group-hover:opacity-100" />
+      </span>
+    </button>
   );
 }
 
@@ -92,30 +79,23 @@ export function LandingPlayPanel({
   onJoinOnline,
 }: LandingPlayPanelProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.45, duration: 0.55 }}
-      className="arcade-glass font-body relative rounded-3xl p-5 sm:p-6"
-    >
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="font-display text-sm font-bold tracking-[0.18em] arcade-text-muted uppercase">
-          Choose mode
+    <div className="font-body relative">
+      <div data-hero-tag className="mb-3 flex items-center gap-3">
+        <span className="h-[2px] w-8 bg-[var(--neon-orange)]" aria-hidden />
+        <p className="font-display text-xs font-bold tracking-[0.3em] uppercase arcade-text-muted">
+          Select mode
         </p>
         <Popover>
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="arcade-glass flex size-8 items-center justify-center rounded-full arcade-text-muted transition-colors hover:text-[var(--arcade-fg)] dark:hover:text-white"
+              className="flex size-6 items-center justify-center text-[var(--arcade-fg)]/75 transition-colors hover:text-[var(--neon-orange)]"
               aria-label="How to win"
             >
               <HelpCircle className="size-4" />
             </button>
           </PopoverTrigger>
-          <PopoverContent
-            side="top"
-            className="arcade-glass max-w-xs arcade-text"
-          >
+          <PopoverContent side="top" className="chamfer max-w-xs border-0 bg-[var(--card)] arcade-text">
             <p className="font-display mb-1 text-xs font-bold tracking-wider uppercase">
               How to win
             </p>
@@ -125,81 +105,67 @@ export function LandingPlayPanel({
       </div>
 
       {konamiUnlocked && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          className="mb-4"
-        >
-          <p className="mb-2 text-[10px] font-semibold tracking-[0.2em] text-[var(--neon-lime)] uppercase">
+        <div data-mode-row className="mb-3">
+          <p className="font-display mb-2 text-[10px] font-bold tracking-[0.3em] text-[var(--neon-violet)] uppercase">
             Board size
           </p>
-          <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
             {KONAMI_BOARD_SIZES.map((size) => (
               <button
                 key={size}
                 type="button"
                 onClick={() => onSizeChange(size)}
                 className={cn(
-                  'font-display flex min-h-10 items-center justify-center rounded-xl border px-1 text-sm font-bold leading-none transition-all duration-200',
+                  'chamfer-sm font-display flex min-h-9 items-center justify-center px-1 text-sm font-bold leading-none transition-colors duration-150',
                   selectedSize === size
-                    ? size <= 2
-                      ? 'border-[var(--neon-violet)] bg-[var(--neon-violet)]/25 text-white shadow-[0_0_20px_var(--neon-violet-glow)]'
-                      : 'border-[var(--neon-orange)] bg-[var(--neon-orange)]/25 text-white shadow-[0_0_20px_var(--neon-orange-glow)]'
-                    : 'border-[var(--game-border)]/50 bg-[var(--game-layer)]/50 arcade-text-muted hover:border-[var(--neon-violet)]/40 hover:text-[var(--arcade-fg)] dark:hover:text-white'
+                    ? 'bg-[var(--neon-orange)] text-white'
+                    : 'bg-[color-mix(in_oklch,var(--arcade-fg),transparent_93%)] arcade-text-muted hover:bg-[color-mix(in_oklch,var(--arcade-fg),transparent_85%)]'
                 )}
               >
                 {size}×{size}
               </button>
             ))}
           </div>
-        </motion.div>
+        </div>
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <PlayTile
+      <div className="flex flex-col gap-1.5">
+        <ModeRow
+          index="01"
           title="VS AI"
           subtitle="Beat the bot"
-          icon={<Bot className="size-6" />}
-          variant="orange"
+          icon={<Bot className="size-4" />}
+          accent="red"
           onClick={() => onStart('PVE')}
-          delay={0.5}
         />
-        <PlayTile
-          title="2 PLAYER"
+        <ModeRow
+          index="02"
+          title="2 Player"
           subtitle="Same-screen showdown"
-          icon={<Users className="size-6" />}
-          variant="violet"
+          icon={<Users className="size-4" />}
+          accent="ice"
           onClick={() => onStart('PVP')}
-          delay={0.58}
+        />
+        <ModeRow
+          index="03"
+          title="Online"
+          subtitle="Challenge the world"
+          icon={<Globe className="size-4" />}
+          accent="ivory"
+          onClick={onCreateOnline}
+        />
+        <ModeRow
+          index="04"
+          title="Join with code"
+          subtitle="Enter a friend's room"
+          icon={<KeyRound className="size-4" />}
+          accent="ivory"
+          onClick={onJoinOnline}
         />
       </div>
-
-      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <button
-          type="button"
-          onClick={() => {
-            playArcadeSound('tap');
-            onCreateOnline();
-          }}
-          className="font-body arcade-glass flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--neon-lime)]/30 bg-[var(--neon-lime)]/10 px-4 text-sm font-semibold text-[var(--neon-lime)] transition-[background-color,transform] duration-100 hover:bg-[var(--neon-lime)]/20 active:scale-95"
-        >
-          <Globe className="size-4" />
-          Challenge the world
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            playArcadeSound('tap');
-            onJoinOnline();
-          }}
-          className="font-body arcade-glass flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/15 px-4 text-sm font-semibold arcade-text-muted transition-[background-color,color,transform] duration-100 hover:bg-white/5 hover:text-white active:scale-95"
-        >
-          Join with code
-        </button>
-      </div>
-      <p className="font-body mt-2 text-center text-[10px] arcade-text-muted">
+      <p data-hero-tag className="font-body mt-2 text-[10px] arcade-text-muted">
         Online play requires sign-in and a username.
       </p>
-    </motion.div>
+    </div>
   );
 }

@@ -31,17 +31,17 @@ const OUTCOME_STYLES: Record<
   win: {
     color: 'var(--neon-orange)',
     glow: 'var(--neon-orange-glow)',
-    particles: ['var(--neon-orange)', '#ff9a4d', 'var(--neon-lime)', '#ffffff'],
+    particles: ['var(--neon-orange)', 'var(--player-x-light)', 'var(--neon-lime)', '#ffffff'],
   },
   lose: {
     color: 'var(--neon-violet)',
     glow: 'var(--neon-violet-glow)',
-    particles: ['var(--neon-violet)', '#c084fc', '#6d28d9'],
+    particles: ['var(--neon-violet)', 'var(--player-o-light)'],
   },
   draw: {
     color: 'var(--neon-cyan)',
-    glow: 'rgba(34, 211, 238, 0.5)',
-    particles: ['var(--neon-cyan)', '#a5f3fc'],
+    glow: 'color-mix(in oklch, var(--neon-cyan) 45%, transparent)',
+    particles: ['var(--neon-cyan)', '#ffffff'],
   },
 };
 
@@ -148,7 +148,10 @@ export function GameOverOverlay({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.25 }}
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-6"
+      // `dark` scope: the dimmed backdrop is a dark surface in BOTH themes, so
+      // everything inside must resolve dark-mode tokens (light-mode ink colors
+      // would be invisible on black — e.g. the ghost button and points count).
+      className="dark fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-6"
     >
       {!reducedMotion && <ParticleBurst styleKey={styleKey} />}
 
@@ -165,8 +168,8 @@ export function GameOverOverlay({
               ? { duration: 0.3 }
               : { type: 'spring', stiffness: 340, damping: 17, delay: 0.08 }
           }
-          className="font-display text-[clamp(3rem,14vw,5.5rem)] leading-none font-extrabold tracking-tight text-white"
-          style={{ textShadow: `0 0 18px ${glow}, 0 0 60px ${glow}`, color }}
+          className="font-hero text-[clamp(3rem,14vw,5.5rem)] leading-none tracking-tight uppercase"
+          style={{ textShadow: `0 0 44px ${glow}`, color }}
         >
           {title}
         </motion.h2>

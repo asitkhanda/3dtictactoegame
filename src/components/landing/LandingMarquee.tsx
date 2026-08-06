@@ -1,3 +1,5 @@
+import { cn } from '../../lib/utils';
+
 const ITEMS = [
   'TWISTED TAC',
   '3D LINES',
@@ -10,7 +12,7 @@ export function LandingMarquee() {
   const track = [...ITEMS, ...ITEMS];
 
   return (
-    <div className="relative overflow-hidden border-y border-[var(--game-border)]/40 bg-[var(--game-layer)]/30 py-2.5 backdrop-blur-sm">
+    <div className="relative overflow-hidden border-y border-[var(--game-border)]/40 bg-[var(--game-layer)]/30 py-1.5">
       <div
         className="flex w-max gap-10 whitespace-nowrap"
         style={{ animation: 'landing-marquee 28s linear infinite' }}
@@ -18,10 +20,13 @@ export function LandingMarquee() {
         {track.map((item, i) => (
           <span
             key={`${item}-${i}`}
-            className="font-display text-xs font-bold tracking-[0.25em] arcade-text-muted uppercase"
+            className={cn(
+              'font-display text-xs font-extrabold tracking-[0.25em] uppercase',
+              i % 2 === 0 ? 'arcade-text' : 'arcade-text-muted'
+            )}
           >
             {item}
-            <span className="mx-10 text-[var(--neon-lime)]">◆</span>
+            <span className="mx-10 text-[var(--neon-orange)]">{'//'}</span>
           </span>
         ))}
       </div>

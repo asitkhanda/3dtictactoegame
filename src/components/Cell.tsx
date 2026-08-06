@@ -28,10 +28,11 @@ const PieceX = memo(function PieceX({
   const layerSpacing = thickness / stackCount;
   const barHeight = Math.max(2, Math.round(size * 0.08));
 
-  // Glow lives on the top cap only — a shadow on every stacked layer is
-  // invisible behind the stack but costs a composited surface each on mobile.
-  const bodyColor = 'bg-[var(--neon-orange)]';
-  const topColor = isWinning ? 'bg-[var(--player-x-light)]' : 'bg-[#ff9a4d]';
+  // Top-lit metal bevel: light top edge → base → dark bottom edge.
+  const bodyGradient =
+    'linear-gradient(180deg, color-mix(in oklch, var(--neon-orange), white 22%) 0%, var(--neon-orange) 45%, color-mix(in oklch, var(--neon-orange), black 32%) 100%)';
+  const capBase = isWinning ? 'var(--player-x-light)' : 'var(--neon-orange)';
+  const capGradient = `linear-gradient(180deg, color-mix(in oklch, ${capBase}, white 45%) 0%, color-mix(in oklch, ${capBase}, white 12%) 50%, color-mix(in oklch, ${capBase}, black 18%) 100%)`;
 
   const layers = useMemo(
     () => Array.from({ length: stackCount }, (_, i) => i * layerSpacing),
@@ -47,48 +48,40 @@ const PieceX = memo(function PieceX({
       style={{ width: size * 0.6, height: size * 0.6, transformStyle: 'preserve-3d' }}
     >
       <div
-        className="absolute inset-0 rounded-full opacity-60"
+        className="absolute inset-0 rounded-full"
         style={{
-          transform: 'translateZ(0px) scale(0.9)',
+          transform: 'translateZ(0px) scale(0.8)',
           background:
-            'radial-gradient(circle, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 55%, transparent 78%)',
+            'radial-gradient(circle, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.12) 50%, transparent 68%)',
         }}
       />
       <div className="relative w-full h-full" style={{ transformStyle: 'preserve-3d' }}>
         {layers.map((z, i) => (
           <div key={i} className="absolute inset-0" style={{ transform: `translateZ(${z}px)` }}>
             <div
-              className={cn(
-                'absolute top-1/2 left-1/2 w-[110%] -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[1px]',
-                bodyColor
-              )}
-              style={{ height: barHeight }}
+              className="absolute top-1/2 left-1/2 w-[110%] -translate-x-1/2 -translate-y-1/2 rotate-45"
+              style={{ height: barHeight, background: bodyGradient }}
             />
             <div
-              className={cn(
-                'absolute top-1/2 left-1/2 w-[110%] -translate-x-1/2 -translate-y-1/2 -rotate-45 rounded-[1px]',
-                bodyColor
-              )}
-              style={{ height: barHeight }}
+              className="absolute top-1/2 left-1/2 w-[110%] -translate-x-1/2 -translate-y-1/2 -rotate-45"
+              style={{ height: barHeight, background: bodyGradient }}
             />
           </div>
         ))}
         <div className="absolute inset-0" style={{ transform: `translateZ(${thickness}px)` }}>
           <div
             className={cn(
-              'absolute top-1/2 left-1/2 w-[110%] -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[1px] border border-white/20',
-              topColor,
-              isWinning && 'shadow-[0_0_20px_var(--neon-orange-glow)] border-white'
+              'absolute top-1/2 left-1/2 w-[110%] -translate-x-1/2 -translate-y-1/2 rotate-45 shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_0_8px_var(--player-x-glow)]',
+              isWinning && 'shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_0_20px_var(--neon-orange-glow)]'
             )}
-            style={{ height: barHeight }}
+            style={{ height: barHeight, background: capGradient }}
           />
           <div
             className={cn(
-              'absolute top-1/2 left-1/2 w-[110%] -translate-x-1/2 -translate-y-1/2 -rotate-45 rounded-[1px] border border-white/20',
-              topColor,
-              isWinning && 'shadow-[0_0_20px_var(--neon-orange-glow)] border-white'
+              'absolute top-1/2 left-1/2 w-[110%] -translate-x-1/2 -translate-y-1/2 -rotate-45 shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_0_8px_var(--player-x-glow)]',
+              isWinning && 'shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_0_20px_var(--neon-orange-glow)]'
             )}
-            style={{ height: barHeight }}
+            style={{ height: barHeight, background: capGradient }}
           />
         </div>
       </div>
@@ -109,9 +102,18 @@ const PieceO = memo(function PieceO({
   const layerSpacing = thickness / stackCount;
   const borderWidth = Math.max(3, Math.round(size * 0.12));
 
-  // Glow lives on the top cap only — see PieceX.
-  const bodyColor = 'border-[var(--neon-violet)]';
-  const topColor = isWinning ? 'border-[var(--player-o-light)]' : 'border-[#c084fc]';
+  // Per-side border colors give the ring a top-lit bevel without extra layers.
+  const bodyBevel = {
+    borderColor: 'var(--neon-violet)',
+    borderTopColor: 'color-mix(in oklch, var(--neon-violet), white 22%)',
+    borderBottomColor: 'color-mix(in oklch, var(--neon-violet), black 32%)',
+  };
+  const capBase = isWinning ? 'var(--player-o-light)' : 'var(--neon-violet)';
+  const capBevel = {
+    borderColor: `color-mix(in oklch, ${capBase}, white 12%)`,
+    borderTopColor: `color-mix(in oklch, ${capBase}, white 48%)`,
+    borderBottomColor: `color-mix(in oklch, ${capBase}, black 20%)`,
+  };
 
   const layers = useMemo(
     () => Array.from({ length: stackCount }, (_, i) => i * layerSpacing),
@@ -126,29 +128,39 @@ const PieceO = memo(function PieceO({
       className="relative pointer-events-none"
       style={{ width: size * 0.6, height: size * 0.6, transformStyle: 'preserve-3d' }}
     >
+      {/* Ring-shaped shadow: transparent center so nothing shows through the O's hole */}
       <div
-        className="absolute inset-0 rounded-full opacity-60"
+        className="absolute inset-0 rounded-full"
         style={{
-          transform: 'translateZ(0px) scale(0.9)',
+          transform: 'translateZ(0px) scale(0.92)',
           background:
-            'radial-gradient(circle, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 55%, transparent 78%)',
+            'radial-gradient(circle, transparent 0%, transparent 32%, rgba(0,0,0,0.26) 48%, rgba(0,0,0,0.1) 62%, transparent 74%)',
         }}
       />
       <div className="relative w-full h-full" style={{ transformStyle: 'preserve-3d' }}>
         {layers.map((z, i) => (
           <div
             key={i}
-            className={cn('absolute inset-0 rounded-full', bodyColor)}
-            style={{ transform: `translateZ(${z}px)`, borderWidth, borderStyle: 'solid' }}
+            className="absolute inset-0 rounded-full"
+            style={{
+              transform: `translateZ(${z}px)`,
+              borderWidth,
+              borderStyle: 'solid',
+              ...bodyBevel,
+            }}
           />
         ))}
         <div
           className={cn(
-            'absolute inset-0 rounded-full border-white/20',
-            topColor,
-            isWinning && 'shadow-[0_0_20px_var(--neon-violet-glow)] border-white'
+            'absolute inset-0 rounded-full shadow-[0_0_8px_var(--player-o-glow)]',
+            isWinning && 'shadow-[0_0_20px_var(--neon-violet-glow)]'
           )}
-          style={{ transform: `translateZ(${thickness}px)`, borderWidth, borderStyle: 'solid' }}
+          style={{
+            transform: `translateZ(${thickness}px)`,
+            borderWidth,
+            borderStyle: 'solid',
+            ...capBevel,
+          }}
         />
       </div>
     </motion.div>
@@ -183,15 +195,15 @@ function CellComponent({
       disabled={!isInteractive}
       aria-label={label}
       className={cn(
-        'group relative flex items-center justify-center rounded-md border p-0 transition-[border-color,transform] duration-200',
+        'group relative flex items-center justify-center border p-0 transition-[border-color,transform] duration-200',
         cellOpacity > 0 && !isWinningCell && 'border-border/50',
         cellOpacity <= 0 && !isWinningCell && 'border-transparent',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon-lime)]/50 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent',
-        isInteractive && cellOpacity > 0 && 'cursor-pointer hover:border-[var(--game-border)] active:scale-95',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon-orange)]/60 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent',
+        isInteractive && cellOpacity > 0 && 'cursor-pointer hover:border-[var(--neon-violet)]/70 active:scale-95',
         isInteractive && cellOpacity <= 0 && 'cursor-pointer active:scale-95',
         disabled && !isWinningCell && 'cursor-default opacity-90',
-        isWinningCell && value === 'X' && 'border-[var(--neon-orange)]/45 bg-[var(--neon-orange)]/12',
-        isWinningCell && value === 'O' && 'border-[var(--neon-violet)]/45 bg-[var(--neon-violet)]/12'
+        isWinningCell && value === 'X' && 'border-[var(--neon-orange)]/60 bg-[var(--neon-orange)]/12',
+        isWinningCell && value === 'O' && 'border-[var(--neon-violet)]/60 bg-[var(--neon-violet)]/12'
       )}
       style={{
         width: cellSize,
@@ -201,13 +213,10 @@ function CellComponent({
         ...surfaceStyles,
       }}
     >
-      {cellOpacity > 0 && (
-        <div className="pointer-events-none absolute inset-0 rounded-md bg-gradient-to-br from-white/5 to-transparent" />
-      )}
       {showLastMoveGlow && (
         <div
           className={cn(
-            'pointer-events-none absolute inset-0 rounded-md last-move-cell-glow',
+            'pointer-events-none absolute inset-0 last-move-cell-glow',
             value === 'X' && 'last-move-cell-glow-x',
             value === 'O' && 'last-move-cell-glow-o',
             !value && 'last-move-cell-glow-neutral'

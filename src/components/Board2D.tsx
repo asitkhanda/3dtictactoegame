@@ -47,7 +47,7 @@ export function Board2D({
     <div className="flex h-full w-full items-center justify-center px-4">
       <div
         className={cn(
-          'relative rounded-xl border',
+          'relative border',
           layerOpacity >= 25 && 'ring-1 ring-white/5'
         )}
         style={{

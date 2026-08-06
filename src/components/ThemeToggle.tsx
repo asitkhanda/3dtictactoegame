@@ -21,7 +21,9 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
     setMounted(true);
   }, []);
 
-  const isDark = mounted ? (resolvedTheme ?? theme) === 'dark' : true;
+  const isDark = mounted
+    ? (resolvedTheme ?? theme) === 'dark'
+    : window.matchMedia('(prefers-color-scheme: dark)').matches;
 
   return (
     <Tooltip>

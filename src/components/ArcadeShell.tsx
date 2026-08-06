@@ -22,7 +22,11 @@ export function ArcadeShell({
     setMounted(true);
   }, []);
 
-  const isDark = mounted ? resolvedTheme !== 'light' : true;
+  // Pre-mount, guess from the device preference so the first frame matches
+  // what next-themes will resolve in system mode.
+  const isDark = mounted
+    ? resolvedTheme === 'dark'
+    : window.matchMedia('(prefers-color-scheme: dark)').matches;
 
   return (
     <div

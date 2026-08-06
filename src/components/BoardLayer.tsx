@@ -110,10 +110,7 @@ function BoardLayerComponent({
 
   return (
     <div
-      className={cn(
-        'absolute rounded-xl border transition-[border-color,box-shadow] duration-500',
-        layerOpacity >= 25 && 'ring-1 ring-[var(--game-border)]/30'
-      )}
+      className={cn('absolute border transition-[border-color,box-shadow] duration-500')}
       style={{
         width: boardPx,
         height: boardPx,
@@ -125,10 +122,22 @@ function BoardLayerComponent({
         ...layerStyles,
       }}
     >
+      {/* Holo frame: corner tick brackets instead of a ring */}
+      {(['top-0 left-0 border-t-2 border-l-2', 'top-0 right-0 border-t-2 border-r-2', 'bottom-0 left-0 border-b-2 border-l-2', 'bottom-0 right-0 border-b-2 border-r-2'] as const).map(
+        (pos) => (
+          <span
+            key={pos}
+            aria-hidden
+            className={cn('pointer-events-none absolute size-3', pos)}
+            style={{ borderColor: 'color-mix(in oklch, var(--game-border) 85%, transparent)' }}
+          />
+        )
+      )}
+
       {isLastMoveLayer && <LastMoveBoardGlow player={lastMovePlayer} />}
       {showLabel && totalLayers > 1 && (
-        <div className="font-body absolute -top-6 left-1/2 flex -translate-x-1/2 items-center gap-1.5 select-none pointer-events-none">
-          <span className="rounded-full border border-[var(--game-border)]/50 bg-[var(--game-layer)]/80 px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-widest arcade-text-muted sm:bg-transparent sm:px-0 sm:py-0 sm:text-xs">
+        <div className="font-display absolute -top-6 left-1/2 flex -translate-x-1/2 items-center gap-1.5 select-none pointer-events-none">
+          <span className="px-1.5 py-0.5 text-[10px] font-bold tracking-[0.25em] arcade-text-muted sm:text-xs">
             L{layerIndex + 1}
           </span>
         </div>

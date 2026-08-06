@@ -5,13 +5,11 @@ import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion';
 import { useIsMobile } from '../ui/use-mobile';
 import { cn } from '../../lib/utils';
 
-const PARTICLE_COUNT = { landing: 36, gameplay: 18 } as const;
-
-const PARTICLES = Array.from({ length: 36 }, (_, i) => ({
+const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
   id: i,
   left: `${(i * 17 + 7) % 100}%`,
   top: `${(i * 23 + 11) % 100}%`,
-  size: 2 + (i % 4),
+  size: 2 + (i % 3),
   delay: (i % 8) * 0.4,
   duration: 4 + (i % 5),
 }));
@@ -20,6 +18,8 @@ interface LandingBackgroundProps {
   variant?: 'landing' | 'gameplay';
 }
 
+/** Tactical canvas: flat deep navy (or ivory), a faint technical grid, and a
+ *  handful of drifting motes. No blurs — texture comes from the grid + noise. */
 export function LandingBackground({ variant = 'landing' }: LandingBackgroundProps) {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -32,18 +32,15 @@ export function LandingBackground({ variant = 'landing' }: LandingBackgroundProp
   }, []);
 
   const isMobile = useIsMobile();
-  const isDark = mounted ? resolvedTheme !== 'light' : true;
-  // During gameplay on phones the GPU budget belongs to the 3D board: keep
-  // the neon look but freeze the ambient animations and skip the particles.
+  const isDark = mounted
+    ? resolvedTheme === 'dark'
+    : window.matchMedia('(prefers-color-scheme: dark)').matches;
   const staticGameplay = isGameplay && isMobile;
-  const particleCount = staticGameplay ? 0 : PARTICLE_COUNT[variant];
-  const blobOpacity = isGameplay ? 0.45 : isDark ? 0.6 : 0.35;
-  const gridOpacity = isGameplay ? 0.22 : isDark ? 0.3 : 0.18;
   const paused = reducedMotion || !pageVisible || staticGameplay;
 
-  const bgStyle = isDark
-    ? { backgroundColor: 'var(--landing-bg)' }
-    : { backgroundColor: 'var(--landing-bg-light)' };
+  const gridInk = isDark
+    ? 'color-mix(in oklch, #93a8b5 16%, transparent)'
+    : 'color-mix(in oklch, #1b2733 12%, transparent)';
 
   return (
     <div
@@ -51,83 +48,52 @@ export function LandingBackground({ variant = 'landing' }: LandingBackgroundProp
         'pointer-events-none fixed inset-0 overflow-hidden',
         paused && 'arcade-animations-paused'
       )}
-      style={bgStyle}
+      style={{ backgroundColor: isDark ? 'var(--landing-bg)' : 'var(--landing-bg-light)' }}
     >
       <div
-        className={cn(
-          'landing-blob landing-blob-orange absolute -top-1/4 -left-1/4 h-[70%] w-[70%] rounded-full blur-[100px]',
-          isGameplay && 'h-[55%] w-[55%]'
-        )}
+        className="absolute inset-0"
         style={{
-          background: 'radial-gradient(circle, var(--neon-orange) 0%, transparent 70%)',
-          opacity: blobOpacity,
-        }}
-      />
-      <div
-        className={cn(
-          'landing-blob landing-blob-violet absolute -right-1/4 top-1/4 h-[60%] w-[60%] rounded-full blur-[120px]',
-          isGameplay && 'h-[50%] w-[50%]'
-        )}
-        style={{
-          background: 'radial-gradient(circle, var(--neon-violet) 0%, transparent 70%)',
-          opacity: blobOpacity * 0.85,
-        }}
-      />
-      {!isGameplay && (
-        <div
-          className="landing-blob landing-blob-cyan absolute bottom-0 left-1/3 h-[45%] w-[45%] rounded-full blur-[90px]"
-          style={{
-            background: 'radial-gradient(circle, var(--neon-cyan) 0%, transparent 70%)',
-            opacity: isDark ? 0.35 : 0.2,
-          }}
-        />
-      )}
-
-      <div
-        className="landing-grid-drift absolute inset-0"
-        style={{
-          opacity: gridOpacity,
+          opacity: isGameplay ? 0.5 : 0.8,
           backgroundImage: `
-            linear-gradient(color-mix(in oklch, var(--neon-lime) ${isDark ? 25 : 18}%, transparent) 1px, transparent 1px),
-            linear-gradient(90deg, color-mix(in oklch, var(--neon-lime) ${isDark ? 25 : 18}%, transparent) 1px, transparent 1px)
+            linear-gradient(${gridInk} 1px, transparent 1px),
+            linear-gradient(90deg, ${gridInk} 1px, transparent 1px)
           `,
-          backgroundSize: '48px 48px',
+          backgroundSize: '56px 56px',
           maskImage:
-            'radial-gradient(ellipse 80% 60% at 50% 55%, black 20%, transparent 75%)',
+            'radial-gradient(ellipse 85% 70% at 50% 45%, black 25%, transparent 80%)',
         }}
       />
 
-      {!isGameplay && (
-        <div
-          className="absolute inset-x-0 bottom-0 h-[45%]"
-          style={{
-            background:
-              'linear-gradient(to top, color-mix(in oklch, var(--neon-violet) 12%, transparent), transparent)',
-            transform: 'perspective(600px) rotateX(55deg)',
-            transformOrigin: 'bottom center',
-            opacity: isDark ? 0.35 : 0.2,
-          }}
-        />
-      )}
+      {/* Corner accents — thin signature-red rules, pure decoration */}
+      <div
+        aria-hidden
+        className="absolute top-0 left-0 h-[2px] w-40 bg-[var(--neon-orange)] opacity-70"
+      />
+      <div
+        aria-hidden
+        className="absolute right-0 bottom-0 h-[2px] w-40 bg-[var(--neon-orange)] opacity-70"
+      />
 
-      {PARTICLES.slice(0, particleCount).map((p) => (
-        <span
-          key={p.id}
-          className="landing-particle absolute rounded-full"
-          style={{
-            left: p.left,
-            top: p.top,
-            width: p.size,
-            height: p.size,
-            backgroundColor: isDark ? 'white' : 'var(--neon-violet)',
-            opacity: isDark ? 1 : 0.5,
-            animationDelay: `${p.delay}s`,
-            animationDuration: `${p.duration}s`,
-          }}
-        />
-      ))}
+      {isDark &&
+        !staticGameplay &&
+        PARTICLES.map((p) => (
+          <span
+            key={p.id}
+            className="landing-particle absolute rounded-full"
+            style={{
+              left: p.left,
+              top: p.top,
+              width: p.size,
+              height: p.size,
+              backgroundColor: '#ece8e1',
+              opacity: 0.6,
+              animationDelay: `${p.delay}s`,
+              animationDuration: `${p.duration}s`,
+            }}
+          />
+        ))}
 
-      <div className="landing-noise absolute inset-0 opacity-60" />
+      <div className="landing-noise absolute inset-0 opacity-50" />
     </div>
   );
 }

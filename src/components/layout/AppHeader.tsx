@@ -18,10 +18,10 @@ export function AppHeader({ className }: AppHeaderProps) {
     <Link
       to={to}
       className={cn(
-        'font-body inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold tracking-wide transition-colors',
+        'chamfer-sm font-display inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-extrabold tracking-wider uppercase transition-[background-color,color]',
         location.pathname === to
-          ? 'bg-white/10 text-[var(--arcade-fg)] dark:text-white'
-          : 'arcade-text-muted hover:bg-white/5 hover:text-[var(--arcade-fg)] dark:hover:text-white'
+          ? 'bg-[var(--neon-orange)] text-white'
+          : 'text-[var(--arcade-fg)]/85 hover:bg-white/5 hover:text-[var(--arcade-fg)]'
       )}
     >
       {icon}
@@ -67,7 +67,7 @@ export function AppHeader({ className }: AppHeaderProps) {
         ) : isConfigured ? (
           <SignInButton className="h-9 rounded-full px-3 text-xs" label="Sign in" />
         ) : null}
-        <ThemeToggle className="arcade-glass size-9 rounded-full text-[var(--arcade-fg-muted)] hover:bg-white/10 hover:text-[var(--arcade-fg)] dark:hover:bg-white/10 dark:hover:text-white" />
+        <ThemeToggle className="arcade-glass size-9 rounded-full text-[var(--arcade-fg)]/85 hover:bg-white/10 hover:text-[var(--arcade-fg)]" />
       </div>
     </header>
   );

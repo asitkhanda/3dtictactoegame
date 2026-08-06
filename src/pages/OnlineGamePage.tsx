@@ -19,7 +19,7 @@ import type { MatchRow } from '../types/database';
 import { ArcadeShell } from '../components/ArcadeShell';
 import { BoardLayer } from '../components/BoardLayer';
 import { BoardCameraJoystick } from '../components/BoardCameraJoystick';
-import { PlayerScore, TurnBadge } from '../components/game/GameHud';
+import { VersusScoreboard } from '../components/game/GameHud';
 import { useBoardScale } from '../hooks/useBoardScale';
 import { useBoardViewport } from '../hooks/useBoardViewport';
 import { useRotationSensitivity } from '../hooks/useRotationSensitivity';
@@ -418,7 +418,7 @@ export function OnlineGamePage() {
       </div>
 
       <header className="sticky top-0 z-50 shrink-0 px-3 py-2 sm:px-4">
-        <div className="arcade-panel mx-auto w-full max-w-3xl rounded-2xl px-2 py-1.5 sm:px-3">
+        <div className="mx-auto w-full max-w-5xl px-1">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="size-8" onClick={() => setExitDialogOpen(true)}>
               <ArrowLeft className="size-4" />
@@ -428,33 +428,6 @@ export function OnlineGamePage() {
               <p className="font-body text-xs arcade-text-muted">Online · You are {mySymbol}</p>
             </div>
 
-            {showLayerScore ? (
-              <div className="flex shrink-0 items-center gap-1.5">
-                <PlayerScore
-                  label={xLabel}
-                  score={xScore}
-                  threshold={config.matchWinThreshold}
-                  active={isXActive}
-                  tone="x"
-                  thinking={isGameActive && !isMyTurn && mySymbol !== 'X'}
-                />
-                <span className="font-mono text-xs arcade-text-muted">vs</span>
-                <PlayerScore
-                  label={oLabel}
-                  score={oScore}
-                  threshold={config.matchWinThreshold}
-                  active={isOActive}
-                  tone="o"
-                  thinking={isGameActive && !isMyTurn && mySymbol !== 'O'}
-                />
-              </div>
-            ) : (
-              <TurnBadge
-                active={isMyTurn}
-                thinking={isGameActive && !isMyTurn}
-                label={isMyTurn ? 'Your turn' : 'Opponent'}
-              />
-            )}
           </div>
 
           {(connectionStatus === 'reconnecting' || opponentDisconnected) && (
@@ -470,8 +443,21 @@ export function OnlineGamePage() {
         </div>
       </header>
 
-      <main className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-auto px-3 py-2 sm:px-4">
-        <div className="relative flex flex-1 items-center justify-center self-stretch">
+      <main className="relative flex min-h-0 flex-1 flex-col items-center overflow-auto px-3 py-2 sm:px-4">
+        <VersusScoreboard
+          className="z-20 mt-0.5 shrink-0"
+          xLabel={xLabel}
+          oLabel={oLabel}
+          xScore={xScore}
+          oScore={oScore}
+          threshold={showLayerScore ? config.matchWinThreshold : 0}
+          xActive={isXActive}
+          oActive={isOActive}
+          thinking={isGameActive && !isMyTurn}
+          thinkingSide={mySymbol === 'X' ? 'o' : 'x'}
+        />
+
+        <div className="relative mt-2 flex min-h-0 flex-1 items-center justify-center self-stretch">
           <div
             ref={viewportRef}
             className={cn(

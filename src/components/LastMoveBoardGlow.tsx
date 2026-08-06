@@ -10,7 +10,7 @@ function LastMoveBoardGlowComponent({ player, className }: LastMoveBoardGlowProp
   return (
     <div
       className={cn(
-        'pointer-events-none absolute inset-0 rounded-xl last-move-board-glow',
+        'pointer-events-none absolute inset-0 last-move-board-glow',
         player === 'X' && 'last-move-board-glow-x',
         player === 'O' && 'last-move-board-glow-o',
         !player && 'last-move-board-glow-neutral',

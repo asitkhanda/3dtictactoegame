@@ -75,11 +75,13 @@ export function getBoardLayerStyles(
   const shadowAlpha = Math.round(layerOpacity * 0.12);
 
   const styles = {
-    backgroundColor: `color-mix(in oklch, var(--game-layer) ${layerOpacity}%, transparent)`,
+    // --board-fill (theme CSS var) damps panel fill on cream paper, where a
+    // translucent light panel would wash out pieces behind it.
+    backgroundColor: `color-mix(in oklch, var(--game-layer) calc(${layerOpacity}% * var(--board-fill, 1)), transparent)`,
     borderColor: `color-mix(in oklch, var(--game-border) ${borderAlpha}%, transparent)`,
     boxShadow:
       layerOpacity >= 15
-        ? `0 20px 25px -5px color-mix(in oklch, black ${shadowAlpha}%, transparent), 0 8px 10px -6px color-mix(in oklch, black ${shadowAlpha}%, transparent)`
+        ? `inset 0 1px 0 color-mix(in oklch, white 16%, transparent), 0 20px 25px -5px color-mix(in oklch, black ${shadowAlpha}%, transparent), 0 8px 10px -6px color-mix(in oklch, black ${shadowAlpha}%, transparent)`
         : 'none',
     backdropFilter: blurPx > 0 ? `blur(${blurPx}px)` : 'none',
     WebkitBackdropFilter: blurPx > 0 ? `blur(${blurPx}px)` : 'none',
@@ -114,7 +116,10 @@ export function getCellSurfaceStyles(
   const borderAlpha = Math.min(60, Math.max(32, Math.round(cellOpacity * 2.2)));
 
   const styles = {
-    backgroundColor: `color-mix(in oklch, var(--game-cell) ${cellOpacity}%, transparent)`,
+    backgroundColor: `color-mix(in oklch, var(--game-cell) calc(${cellOpacity}% * var(--board-fill, 1)), transparent)`,
+    // Faint diagonal sheen — reads as glass in both themes.
+    backgroundImage:
+      'linear-gradient(135deg, color-mix(in oklch, white 14%, transparent), transparent 55%)',
     borderColor: `color-mix(in oklch, var(--game-border) ${borderAlpha}%, transparent)`,
   } satisfies CSSProperties;
 

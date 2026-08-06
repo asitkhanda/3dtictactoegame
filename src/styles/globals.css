@@ -2,10 +2,10 @@
 
 :root {
   --font-size: 16px;
-  --background: #ffffff;
-  --foreground: oklch(0.145 0 0);
-  --card: #ffffff;
-  --card-foreground: oklch(0.145 0 0);
+  --background: #ece8e1;
+  --foreground: #1b2733;
+  --card: #f5f2ec;
+  --card-foreground: #1b2733;
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
   --primary: #030213;
@@ -44,30 +44,30 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --player-x: oklch(0.58 0.2 45);
-  --player-x-light: oklch(0.75 0.15 55);
-  --player-x-glow: rgba(234, 88, 12, 0.55);
-  --player-o: oklch(0.52 0.22 300);
-  --player-o-light: oklch(0.72 0.14 300);
-  --player-o-glow: rgba(124, 58, 237, 0.55);
-  --landing-bg-light: #f0ede8;
-  --arcade-fg: oklch(0.18 0.02 260);
-  --arcade-fg-muted: oklch(0.42 0.02 260);
-  --game-layer: oklch(0.94 0.008 260);
-  --game-cell: oklch(0.9 0.012 260);
-  --game-border: oklch(0.78 0.02 260);
-  --arcade-glass-bg: color-mix(in oklch, white 72%, transparent);
-  --arcade-glass-border: color-mix(in oklch, black 10%, transparent);
-  --arcade-glass-shadow: 0 12px 40px color-mix(in oklch, black 12%, transparent);
-  --arcade-glass-inset: inset 0 1px 0 color-mix(in oklch, white 80%, transparent);
-  --arcade-panel-bg: color-mix(in oklch, var(--game-layer) 92%, transparent);
+  --player-x: #d92632;
+  --player-x-light: #f0616b;
+  --player-x-glow: rgba(217, 38, 50, 0.35);
+  --player-o: #0c948b;
+  --player-o-light: #35bfb5;
+  --player-o-glow: rgba(12, 148, 139, 0.35);
+  --landing-bg-light: #ece8e1;
+  --arcade-fg: #1b2733;
+  --arcade-fg-muted: oklch(0.4 0.025 240);
+  --game-layer: oklch(0.9 0.008 240);
+  --game-cell: oklch(0.84 0.01 240);
+  --game-border: oklch(0.45 0.025 240);
+  --arcade-glass-bg: color-mix(in oklch, #ffffff 78%, transparent);
+  --arcade-glass-border: color-mix(in oklch, #1b2733 35%, transparent);
+  --arcade-glass-shadow: 0 12px 40px color-mix(in oklch, #1b2733 14%, transparent);
+  --arcade-glass-inset: inset 0 1px 0 color-mix(in oklch, white 85%, transparent);
+  --arcade-panel-bg: color-mix(in oklch, var(--game-layer) 94%, transparent);
 }
 
 .dark {
-  --background: oklch(0.13 0.01 260);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.17 0.012 260);
-  --card-foreground: oklch(0.985 0 0);
+  --background: #0f1923;
+  --foreground: #ece8e1;
+  --card: #16222e;
+  --card-foreground: #ece8e1;
   --popover: oklch(0.17 0.012 260);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.985 0 0);
@@ -102,17 +102,17 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
-  --player-x: oklch(0.72 0.17 55);
-  --player-x-light: oklch(0.88 0.1 70);
-  --player-x-glow: rgba(249, 115, 22, 0.6);
-  --player-o: oklch(0.65 0.2 300);
-  --player-o-light: oklch(0.82 0.1 300);
-  --player-o-glow: rgba(167, 139, 250, 0.6);
-  --arcade-fg: oklch(0.985 0 0);
-  --arcade-fg-muted: oklch(0.72 0.01 260);
-  --game-layer: oklch(0.22 0.014 260);
-  --game-cell: oklch(0.28 0.016 260);
-  --game-border: oklch(0.48 0.02 260);
+  --player-x: #ff4655;
+  --player-x-light: #ff8791;
+  --player-x-glow: rgba(255, 70, 85, 0.5);
+  --player-o: #3be8e0;
+  --player-o-light: #8ff3ee;
+  --player-o-glow: rgba(59, 232, 224, 0.45);
+  --arcade-fg: #ece8e1;
+  --arcade-fg-muted: oklch(0.78 0.02 240);
+  --game-layer: oklch(0.26 0.028 245);
+  --game-cell: oklch(0.32 0.032 245);
+  --game-border: oklch(0.55 0.03 240);
   --arcade-glass-bg: color-mix(in oklch, white 6%, transparent);
   --arcade-glass-border: color-mix(in oklch, white 14%, transparent);
   --arcade-glass-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
@@ -253,17 +253,64 @@ html {
   font-size: var(--font-size);
 }
 
-/* ── Landing / arcade tokens ── */
+/* ── Tactical esports tokens (Valorant-family) ──
+   Dark (default): deep navy-charcoal canvas, signature red, ivory text.
+   Light: ivory "lore page" variant — navy ink + the same red.
+   Var names kept from the neon era to avoid a mass rename:
+   orange→signature red (X), violet→ice cyan (O), lime→ivory/navy accent
+   fill, cyan→steel neutral. --on-accent is the text color used on
+   accent-filled chips/buttons. */
 :root {
   --font-display: 'Khand', system-ui, sans-serif;
+  --font-hero: 'Anton', 'Khand', system-ui, sans-serif;
   --font-body: 'Switzer', system-ui, sans-serif;
-  --neon-orange: #fe791a;
-  --neon-orange-glow: rgba(254, 121, 26, 0.55);
-  --neon-violet: #a855f7;
-  --neon-violet-glow: rgba(168, 85, 247, 0.5);
-  --neon-lime: #50ff32;
-  --neon-cyan: #22d3ee;
-  --landing-bg: #050508;
+  --neon-orange: #d92632;
+  --neon-orange-glow: rgba(217, 38, 50, 0.3);
+  --neon-violet: #0c948b;
+  --neon-violet-glow: rgba(12, 148, 139, 0.28);
+  --neon-lime: #1b2733;
+  --neon-cyan: #55707e;
+  --on-accent: #ece8e1;
+  --landing-bg: #0f1923;
+  --board-fill: 0.55;
+}
+
+.dark {
+  --neon-orange: #ff4655;
+  --neon-orange-glow: rgba(255, 70, 85, 0.42);
+  --neon-violet: #3be8e0;
+  --neon-violet-glow: rgba(59, 232, 224, 0.38);
+  --neon-lime: #ece8e1;
+  --neon-cyan: #93a8b5;
+  --on-accent: #0f1923;
+  --board-fill: 1;
+}
+
+@utility font-hero {
+  font-family: var(--font-hero);
+}
+
+/* Chamfered corners — the tactical panel signature (opposing corners cut). */
+@utility chamfer {
+  clip-path: polygon(
+    10px 0,
+    100% 0,
+    100% calc(100% - 10px),
+    calc(100% - 10px) 100%,
+    0 100%,
+    0 10px
+  );
+}
+
+@utility chamfer-sm {
+  clip-path: polygon(
+    6px 0,
+    100% 0,
+    100% calc(100% - 6px),
+    calc(100% - 6px) 100%,
+    0 100%,
+    0 6px
+  );
 }
 
 @keyframes landing-gradient-shift {
@@ -550,6 +597,28 @@ textarea,
 .arcade-animations-paused,
 .arcade-animations-paused * {
   animation-play-state: paused !important;
+}
+
+/* Subtle CRT scanlines — one cheap repeating gradient, no filters. */
+.arcade-scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(127, 127, 127, 0.045) 0px,
+    rgba(127, 127, 127, 0.045) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
+
+/* Diagonal hazard-stripe accent, used on header strips and dividers. */
+.hazard-stripes {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--neon-orange) 0px,
+    var(--neon-orange) 6px,
+    transparent 6px,
+    transparent 14px
+  );
 }
 
 @keyframes hud-glow-pulse {

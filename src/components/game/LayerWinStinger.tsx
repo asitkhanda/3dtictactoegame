@@ -30,20 +30,15 @@ export function LayerWinStinger({ event }: LayerWinStingerProps) {
         >
           <div
             className={cn(
-              'font-display flex items-center gap-3 border-y-2 px-8 py-2 text-2xl font-extrabold tracking-widest uppercase sm:text-3xl',
+              'font-display flex items-center gap-3 border-y-2 border-black/60 px-8 py-2 text-2xl font-extrabold tracking-widest uppercase sm:text-3xl',
               event.winner === 'X'
-                ? 'border-[var(--neon-orange)] bg-[#1a0d02]/85 text-[var(--neon-orange)]'
-                : 'border-[var(--neon-violet)] bg-[#12061f]/85 text-[var(--neon-violet)]'
+                ? 'bg-[var(--neon-orange)] text-white'
+                : 'bg-[var(--neon-violet)] text-white dark:text-[#0f1923]'
             )}
-            style={{
-              textShadow:
-                event.winner === 'X'
-                  ? '0 0 16px var(--neon-orange-glow)'
-                  : '0 0 16px var(--neon-violet-glow)',
-            }}
+            style={{ textShadow: '2px 2px 0 rgba(0,0,0,0.3)' }}
           >
             <span>Layer {event.layerNumber}</span>
-            <span className="text-white/60">—</span>
+            <span className="opacity-60">—</span>
             <span>{event.claimant}</span>
           </div>
         </motion.div>
