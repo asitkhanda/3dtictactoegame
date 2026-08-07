@@ -1,53 +1,23 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { GameMode } from '../utils/gameConfig';
 
 export type GameOutcome = 'win' | 'loss' | 'draw';
 
-export function getLocalOutcome(
-  mode: GameMode,
-  winner: 'X' | 'O' | null,
-  draw: boolean
-): GameOutcome | null {
-  if (draw) return 'draw';
-  if (!winner) return null;
-  if (mode === 'PVE') return winner === 'X' ? 'win' : 'loss';
-  return 'win';
-}
-
+/**
+ * Rank points are only awarded for online matches against real opponents.
+ * Local play (vs AI and pass-and-play) is deliberately unscored — otherwise
+ * the leaderboard just measures who farmed the bot the longest.
+ *
+ * Online results are written server-side by the submit-move edge function and
+ * forfeit_match; this is only used to show the player what they earned.
+ */
 export function getPointsForOutcome(mode: GameMode, outcome: GameOutcome): number {
-  if (outcome === 'win') {
-    if (mode === 'PVE') return 10;
-    if (mode === 'PVP') return 15;
-    if (mode === 'PVP_ONLINE') return 25;
-  }
-  if (outcome === 'draw') {
-    if (mode === 'PVE') return 3;
-    if (mode === 'PVP' || mode === 'PVP_ONLINE') return 5;
-  }
-  if (outcome === 'loss' && mode === 'PVP_ONLINE') return -5;
-  return 0;
+  if (mode !== 'PVP_ONLINE') return 0;
+  if (outcome === 'win') return 25;
+  if (outcome === 'draw') return 5;
+  return -5;
 }
 
-export async function recordGameResult(
-  mode: GameMode,
-  boardSize: number,
-  outcome: GameOutcome,
-  opponentId?: string | null,
-  matchId?: string | null
-): Promise<{ error: string | null; pointsEarned: number }> {
-  if (!isSupabaseConfigured) {
-    return { error: 'Supabase not configured', pointsEarned: 0 };
-  }
-
-  const pointsEarned = getPointsForOutcome(mode, outcome);
-
-  const { error } = await supabase.rpc('record_game_result', {
-    p_mode: mode,
-    p_board_size: boardSize,
-    p_outcome: outcome,
-    p_opponent_id: opponentId ?? null,
-    p_match_id: matchId ?? null,
-  });
-
-  return { error: error?.message ?? null, pointsEarned };
+/** True when a mode contributes to profile stats and the leaderboard. */
+export function isRankedMode(mode: GameMode): boolean {
+  return mode === 'PVP_ONLINE';
 }

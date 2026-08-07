@@ -92,16 +92,6 @@ export type Database = {
         };
         Returns: undefined;
       };
-      record_game_result: {
-        Args: {
-          p_mode: string;
-          p_board_size: number;
-          p_outcome: string;
-          p_opponent_id?: string | null;
-          p_match_id?: string | null;
-        };
-        Returns: void;
-      };
       submit_match_move: {
         Args: { p_match_id: string; p_cell_index: number };
         Returns: MatchRow;

@@ -49,7 +49,6 @@ import { useArcadeSound } from '../hooks/useArcadeSound';
 import { cn } from '../lib/utils';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
-import { getLocalOutcome, getPointsForOutcome, recordGameResult } from '../services/scoreService';
 
 const arcadeIconBtn =
   'size-8 shrink-0 rounded-full text-[var(--arcade-fg)]/80 hover:bg-white/10 hover:text-[var(--arcade-fg)]';
@@ -57,7 +56,6 @@ const arcadeIconBtn =
 export function GameBoard() {
   const { user, profile, signInWithGoogle, isConfigured } = useAuth();
   const { muted, toggleMuted } = useArcadeSound();
-  const scoredGameRef = useRef<string | null>(null);
   const [session, setSession] = useState<{
     config: GameConfig;
     gameMode: GameMode;
@@ -83,7 +81,6 @@ export function GameBoard() {
   const [draw, setDraw] = useState(false);
   const [lastMoveIndex, setLastMoveIndex] = useState<number | null>(null);
   const [rulesOpen, setRulesOpen] = useState(false);
-  const [earnedPoints, setEarnedPoints] = useState<number | null>(null);
   const [layerEvent, setLayerEvent] = useState<LayerWinEvent | null>(null);
   const [showGameOver, setShowGameOver] = useState(false);
 
@@ -120,7 +117,6 @@ export function GameBoard() {
     setCrossLayerWinningLine(null);
     setWinningLine(null);
     setLastMoveIndex(null);
-    setEarnedPoints(null);
     setLayerEvent(null);
     setShowGameOver(false);
   }, []);
@@ -266,28 +262,6 @@ export function GameBoard() {
     if (winner === 'O' && gameMode === 'PVE') return 'AI wins!';
     return `${winner} wins the match!`;
   }, [config, gameMode, winner, crossLayerWinningLine]);
-
-  useEffect(() => {
-    if (!config || !gameMode) return;
-    if (!winner && !draw) return;
-
-    const gameKey = `${gameMode}-${config.size}-${winner ?? 'draw'}-${board.join('')}`;
-
-    if (
-      isConfigured &&
-      user &&
-      profile?.username &&
-      gameMode !== 'PVP_ONLINE' &&
-      scoredGameRef.current !== gameKey
-    ) {
-      scoredGameRef.current = gameKey;
-      const outcome = getLocalOutcome(gameMode, winner, draw);
-      if (outcome) {
-        setEarnedPoints(getPointsForOutcome(gameMode, outcome));
-        void recordGameResult(gameMode, config.size, outcome);
-      }
-    }
-  }, [config, gameMode, winner, draw, board, user, profile?.username, isConfigured]);
 
   if (!session || !config || !gameMode) {
     return <GameSetupMenu onStart={handleStart} />;
@@ -591,19 +565,19 @@ export function GameBoard() {
           accent={overlayAccent}
           title={overlayTitle}
           subtitle={overlaySubtitle}
-          pointsEarned={earnedPoints ?? undefined}
+          casual
           primaryLabel="Play again"
           onPrimary={resetGameState}
           secondaryLabel="Change mode"
           onSecondary={exitToMenu}
           footer={
-            isConfigured && !user && !draw ? (
+            isConfigured && !user ? (
               <button
                 type="button"
                 onClick={() => void signInWithGoogle()}
                 className="font-body text-sm text-white/60 underline-offset-4 transition-colors hover:text-white hover:underline"
               >
-                Sign in to bank your points
+                Sign in to play ranked online
               </button>
             ) : undefined
           }

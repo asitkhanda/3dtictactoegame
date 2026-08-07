@@ -22,6 +22,8 @@ interface GameOverOverlayProps {
   footer?: React.ReactNode;
   /** Color override, e.g. violet celebration when O wins a local 2P match. */
   accent?: 'orange' | 'violet' | 'cyan';
+  /** Local match — shows why no rank points were awarded. */
+  casual?: boolean;
 }
 
 const OUTCOME_STYLES: Record<
@@ -86,34 +88,50 @@ function ParticleBurst({ styleKey }: { styleKey: GameOverOutcome }) {
   );
 }
 
+/** Counts the rank-point change up (or down) from zero on arrival. */
 function PointsCounter({ points }: { points: number }) {
   const [shown, setShown] = useState(0);
   const rafRef = useRef<number | null>(null);
+  const gained = points >= 0;
 
   useEffect(() => {
-    const start = performance.now();
     const duration = 700;
+    const start = performance.now();
     const step = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
       setShown(Math.round(points * (1 - Math.pow(1 - t, 3))));
       if (t < 1) rafRef.current = requestAnimationFrame(step);
     };
     rafRef.current = requestAnimationFrame(step);
+
+    // Frames are throttled while a tab is backgrounded, which would otherwise
+    // strand the tally at zero. Land on the real figure regardless.
+    const settle = setTimeout(() => setShown(points), duration + 80);
+
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      clearTimeout(settle);
     };
   }, [points]);
 
   return (
-    <motion.p
+    <motion.div
       initial={{ scale: 0.6, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ delay: 0.5, type: 'spring', stiffness: 300, damping: 16 }}
-      className="font-display text-xl font-extrabold tracking-wide text-[var(--neon-lime)]"
+      className="flex flex-col items-center gap-1"
     >
-      {points >= 0 ? '+' : ''}
-      {shown} PTS
-    </motion.p>
+      <span
+        className="font-hero text-3xl tracking-wide tabular-nums"
+        style={{ color: gained ? 'var(--neon-lime)' : 'var(--neon-orange)' }}
+      >
+        {gained ? '+' : '−'}
+        {Math.abs(shown)}
+      </span>
+      <span className="font-display text-[10px] font-bold tracking-[0.3em] text-white/60 uppercase">
+        {gained ? 'Rank points' : 'Rank points lost'}
+      </span>
+    </motion.div>
   );
 }
 
@@ -128,6 +146,7 @@ export function GameOverOverlay({
   onSecondary,
   footer,
   accent,
+  casual = false,
 }: GameOverOverlayProps) {
   const reducedMotion = usePrefersReducedMotion();
   const styleKey = accent ? ACCENT_TO_OUTCOME[accent] : outcome;
@@ -186,9 +205,20 @@ export function GameOverOverlay({
         )}
 
         {typeof pointsEarned === 'number' && pointsEarned !== 0 && (
-          <div className="mt-4">
+          <div className="mt-5">
             <PointsCounter points={pointsEarned} />
           </div>
+        )}
+
+        {casual && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="chamfer-sm font-display mt-5 bg-white/10 px-3 py-1.5 text-[10px] font-bold tracking-[0.22em] text-white/70 uppercase"
+          >
+            Casual match · no rank points
+          </motion.p>
         )}
 
         <motion.div

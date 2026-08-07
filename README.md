@@ -27,7 +27,7 @@ Once a layer is won, it locks — no more moves on that layer. If neither player
 | **2 Player** | Local pass-and-play on the same device |
 | **Online** | Create or join a room and play remotely (sign-in required) |
 
-Earn points for wins and draws. Sign in with Google to track your profile and climb the **leaderboard**.
+Only **online** matches are ranked — wins, draws and losses move your score there. VS AI and 2 Player are casual, so nobody climbs the board by grinding the bot. Sign in with Google to track your profile and compete on the **leaderboard**.
 
 ---
 
