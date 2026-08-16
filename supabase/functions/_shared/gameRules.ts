@@ -45,6 +45,23 @@ export function createGameRulesConfig(size: BoardSize, viewMode: ViewMode): Game
   };
 }
 
+export function isValidGameRulesConfig(
+  config: Partial<GameRulesConfig> | null | undefined
+): config is GameRulesConfig {
+  const size = config?.size;
+  return Boolean(
+    config &&
+      typeof size === 'number' &&
+      Number.isInteger(size) &&
+      size >= 1 &&
+      size <= 8 &&
+      (config.viewMode === '2D' || config.viewMode === '3D') &&
+      config.cellCount ===
+        (config.viewMode === '3D' ? size ** 3 : size ** 2) &&
+      config.layerCount === (config.viewMode === '3D' ? size : 1)
+  );
+}
+
 export interface GameState {
   board: BoardState;
   layerWinners: LayerResult[];
@@ -226,6 +243,31 @@ export function isDraw(config: GameRulesConfig, board: BoardState): boolean {
   return board.every((cell) => cell !== null);
 }
 
+export function isValidBoardState(config: GameRulesConfig, board: BoardState): boolean {
+  return (
+    Array.isArray(board) &&
+    board.length === config.cellCount &&
+    board.every((cell) => cell === null || cell === 'X' || cell === 'O')
+  );
+}
+
+export function isValidLayerResults(
+  config: GameRulesConfig,
+  layerWinners: LayerResult[]
+): boolean {
+  return (
+    Array.isArray(layerWinners) &&
+    layerWinners.length === config.layerCount &&
+    layerWinners.every(
+      (layer) =>
+        layer &&
+        (layer.winner === null || layer.winner === 'X' || layer.winner === 'O') &&
+        (layer.line === null ||
+          (Array.isArray(layer.line) && layer.line.every((index) => Number.isInteger(index))))
+    )
+  );
+}
+
 export function hasLegalMoves(
   config: GameRulesConfig,
   board: BoardState,
@@ -238,6 +280,28 @@ export function hasLegalMoves(
     return true;
   }
   return false;
+}
+
+export function getTerminalWinner(
+  config: GameRulesConfig,
+  board: BoardState,
+  layerWinners: LayerResult[]
+): Player {
+  if (!isValidBoardState(config, board) || !isValidLayerResults(config, layerWinners)) {
+    return null;
+  }
+  if (config.size === 1) return board[0];
+  if (config.is3D) {
+    const cross = checkCrossLayerWinner(config, board);
+    if (cross.winner) return cross.winner;
+    const xWins = layerWinners.filter((layer) => layer.winner === 'X').length;
+    const oWins = layerWinners.filter((layer) => layer.winner === 'O').length;
+    if (xWins >= config.matchWinThreshold) return 'X';
+    if (oWins >= config.matchWinThreshold) return 'O';
+  } else {
+    return checkBoardWinner(config, board).winner;
+  }
+  return null;
 }
 
 export interface MoveResult {
@@ -257,6 +321,21 @@ export function applyMove(
   index: number,
   isXNext: boolean
 ): MoveResult | null {
+  if (
+    !isValidGameRulesConfig(config) ||
+    !isValidBoardState(config, board) ||
+    !isValidLayerResults(config, layerWinners) ||
+    !Number.isInteger(index) ||
+    index < 0 ||
+    index >= config.cellCount
+  ) {
+    return null;
+  }
+
+  if (getTerminalWinner(config, board, layerWinners) || !hasLegalMoves(config, board, layerWinners)) {
+    return null;
+  }
+
   const player: Player = isXNext ? 'X' : 'O';
   const layerIndex = config.layerOf(index);
 
@@ -488,6 +567,18 @@ function findWinningMoves(
   return wins;
 }
 
+export function getImmediateWinningMoves(
+  config: GameRulesConfig,
+  board: BoardState,
+  layerWinners: LayerResult[],
+  player: 'X' | 'O'
+): number[] {
+  if (!isValidBoardState(config, board) || !isValidLayerResults(config, layerWinners)) {
+    return [];
+  }
+  return findWinningMoves(config, board, layerWinners, player, legalMoves(config, board, layerWinners));
+}
+
 /** Value of holding `count` cells of a `winLength` line — steeply superlinear. */
 function lineValue(count: number, winLength: number): number {
   const remaining = winLength - count;
@@ -548,6 +639,18 @@ function evaluatePosition(
   score += (myLayers - theirLayers) * LAYER_CLAIM_BONUS;
 
   return score;
+}
+
+export function evaluatePositionFor(
+  config: GameRulesConfig,
+  board: BoardState,
+  layerWinners: LayerResult[],
+  player: 'X' | 'O'
+): number {
+  if (!isValidBoardState(config, board) || !isValidLayerResults(config, layerWinners)) {
+    return Number.NEGATIVE_INFINITY;
+  }
+  return evaluatePosition(config, board, layerWinners, player, getLineIndex(config));
 }
 
 /** Cheap static ordering — busier cells first — so alpha-beta prunes early. */

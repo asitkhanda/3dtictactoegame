@@ -214,7 +214,7 @@ export function OnlineGamePage() {
 
       setPendingMoveIndex(index);
       setLastMoveIndex(index);
-      applyMatch(optimistic);
+      applyMatch(optimistic, true);
 
       const { match: serverMatch, error: moveError } = await submitMatchMove(matchId, index);
       setPendingMoveIndex(null);

@@ -11,6 +11,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { GameResult } from '../types/database';
+import { isSafeAvatarUrl } from '../utils/profileValidation';
 
 export function ProfilePage() {
   const navigate = useNavigate();
@@ -57,6 +58,12 @@ export function ProfilePage() {
     setSaving(true);
     setError(null);
     setMessage(null);
+
+    if (!isSafeAvatarUrl(avatarUrl)) {
+      setError('Avatar URL must be a valid HTTP or HTTPS URL.');
+      setSaving(false);
+      return;
+    }
 
     if (profile && usernameInput !== profile.username) {
       const available = await checkUsernameAvailable(usernameInput);

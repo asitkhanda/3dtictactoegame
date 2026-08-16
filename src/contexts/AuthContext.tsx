@@ -10,6 +10,7 @@ import {
 import type { Session, User } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import type { Profile } from '../types/database';
+import { logger } from '../utils/logger';
 
 interface AuthContextValue {
   session: Session | null;
@@ -36,7 +37,7 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
     .eq('id', userId)
     .maybeSingle();
   if (error) {
-    console.error('Failed to load profile', error);
+    logger.error('Failed to load profile', error);
     return null;
   }
   return data;

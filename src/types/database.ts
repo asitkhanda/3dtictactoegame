@@ -40,6 +40,7 @@ export type MatchRow = {
   abandon_reason: string | null;
   created_at: string;
   updated_at: string;
+  revision: number;
 }
 
 export type GameResult = {
@@ -52,6 +53,7 @@ export type GameResult = {
   points_earned: number;
   match_id: string | null;
   created_at: string;
+  settlement_key: string | null;
 }
 
 export type Database = {
@@ -115,6 +117,30 @@ export type Database = {
       check_username_available: {
         Args: { desired_username: string };
         Returns: boolean;
+      };
+      commit_match_move: {
+        Args: {
+          p_match_id: string;
+          p_expected_revision: number;
+          p_board: unknown;
+          p_layer_winners: unknown;
+          p_is_x_next: boolean;
+          p_winner: 'X' | 'O' | null;
+          p_draw: boolean;
+          p_current_turn_user_id: string | null;
+          p_status: 'active' | 'finished';
+        };
+        Returns: MatchRow;
+      };
+      settle_stale_match: {
+        Args: {
+          p_match_id: string;
+          p_expected_revision: number;
+          p_winner: 'X' | 'O' | null;
+          p_draw: boolean;
+          p_reason: string;
+        };
+        Returns: MatchRow;
       };
     };
   };

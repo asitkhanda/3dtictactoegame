@@ -6,6 +6,12 @@ export {
   type LayerResult,
   type GameState,
   type MoveResult,
+  isValidGameRulesConfig,
+  isValidBoardState,
+  isValidLayerResults,
+  getImmediateWinningMoves,
+  evaluatePositionFor,
+  getTerminalWinner,
   createInitialState,
   generateLayerLines,
   generateCrossLayerLines,
@@ -17,4 +23,4 @@ export {
   hasLegalMoves,
   applyMove,
   getComputerMove,
-} from '../../supabase/functions/_shared/gameRules';
+} from '../shared/gameRules';

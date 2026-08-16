@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import {
   applyMove,
   createGameRulesConfig,
+  isValidGameRulesConfig,
   type BoardState,
   type LayerResult,
 } from '../_shared/gameRules.ts';
@@ -45,7 +46,7 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: 'Unauthorized' }, 401);
 
     const { matchId, cellIndex } = await req.json();
-    if (!matchId || typeof cellIndex !== 'number') {
+    if (!matchId || typeof matchId !== 'string' || !Number.isInteger(cellIndex)) {
       return json({ error: 'Invalid payload' }, 400);
     }
 
@@ -62,7 +63,23 @@ Deno.serve(async (req) => {
       return json({ error: 'Not a participant' }, 403);
     }
 
-    const config = createGameRulesConfig(match.config.size, match.config.viewMode);
+    const configInput = match.config as { size?: unknown; viewMode?: unknown };
+    if (
+      !Number.isInteger(configInput.size) ||
+      configInput.size < 1 ||
+      configInput.size > 8 ||
+      (configInput.viewMode !== '2D' && configInput.viewMode !== '3D')
+    ) {
+      return json({ error: 'Invalid match configuration' }, 500);
+    }
+
+    const config = createGameRulesConfig(
+      configInput.size as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
+      configInput.viewMode
+    );
+    if (!isValidGameRulesConfig(config) || cellIndex < 0 || cellIndex >= config.cellCount) {
+      return json({ error: 'Invalid move' }, 400);
+    }
     const board = match.board as BoardState;
     const layerWinners = match.layer_winners as LayerResult[];
     const result = applyMove(config, board, layerWinners, cellIndex, match.is_x_next);
@@ -73,46 +90,21 @@ Deno.serve(async (req) => {
       : getPlayerUserId(match, 'O');
 
     const finished = Boolean(result.winner || result.draw);
-    const updates = {
-      board: result.board,
-      layer_winners: result.layerWinners,
-      is_x_next: result.isXNext,
-      winner: result.winner,
-      draw: result.draw,
-      status: finished ? 'finished' : 'active',
-      current_turn_user_id: finished ? null : nextTurnUserId,
-      updated_at: new Date().toISOString(),
-    };
+    const { data: updated, error: updateError } = await adminClient.rpc('commit_match_move', {
+      p_match_id: matchId,
+      p_expected_revision: match.revision,
+      p_board: result.board,
+      p_layer_winners: result.layerWinners,
+      p_is_x_next: result.isXNext,
+      p_winner: result.winner,
+      p_draw: result.draw,
+      p_current_turn_user_id: finished ? null : nextTurnUserId,
+      p_status: finished ? 'finished' : 'active',
+    });
 
-    const { data: updated, error: updateError } = await adminClient
-      .from('matches')
-      .update(updates)
-      .eq('id', matchId)
-      .select('*')
-      .single();
-
-    if (updateError) return json({ error: updateError.message }, 500);
-
-    if (finished && match.host_id && match.guest_id) {
-      const winner = result.winner as 'X' | 'O' | null;
-      for (const player of ['X', 'O'] as const) {
-        const playerId = getPlayerUserId(match, player) as string;
-        const opponentId = getPlayerUserId(match, player === 'X' ? 'O' : 'X') as string;
-        let outcome = 'draw';
-        let pts = 5;
-        if (!result.draw && winner) {
-          outcome = winner === player ? 'win' : 'loss';
-          pts = winner === player ? 25 : -5;
-        }
-        await adminClient.rpc('apply_match_result', {
-          p_player_id: playerId,
-          p_opponent_id: opponentId,
-          p_board_size: match.config.size,
-          p_match_id: matchId,
-          p_outcome: outcome,
-          p_points: pts,
-        });
-      }
+    if (updateError) {
+      const isConflict = updateError.message.includes('Match state conflict');
+      return json({ error: isConflict ? 'Match changed; refresh and try again.' : updateError.message }, isConflict ? 409 : 500);
     }
 
     return json({ match: updated });

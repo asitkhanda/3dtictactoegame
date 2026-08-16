@@ -19,7 +19,9 @@ export function useMatch(matchId: string | undefined, userId: string | undefined
       setConnectionStatus('error');
       return;
     }
-    setMatch(next);
+    setMatch((current) =>
+      !current || (next && next.revision >= current.revision) ? next : current
+    );
     setConnectionStatus('synced');
     setError(null);
   }, [matchId]);
@@ -40,7 +42,10 @@ export function useMatch(matchId: string | undefined, userId: string | undefined
           filter: `id=eq.${matchId}`,
         },
         (payload) => {
-          setMatch(payload.new as MatchRow);
+          const next = payload.new as MatchRow;
+          setMatch((current) =>
+            !current || next.revision > current.revision ? next : current
+          );
           setConnectionStatus('synced');
         }
       )
@@ -90,8 +95,10 @@ export function useMatch(matchId: string | undefined, userId: string | undefined
     };
   }, [matchId, userId, refresh]);
 
-  const applyMatch = useCallback((next: MatchRow) => {
-    setMatch(next);
+  const applyMatch = useCallback((next: MatchRow, optimistic = false) => {
+    setMatch((current) =>
+      !current || optimistic || next.revision > current.revision ? next : current
+    );
     setConnectionStatus('synced');
     setError(null);
   }, []);

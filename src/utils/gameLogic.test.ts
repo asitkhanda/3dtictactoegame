@@ -204,3 +204,27 @@ describe('draw detection', () => {
     expect(isDraw(config3D, board)).toBe(false);
   });
 });
+
+describe('input validation', () => {
+  it('rejects indexes outside the board and non-integer indexes', () => {
+    const { board, layerWinners } = createInitialState(config3D);
+    expect(applyMove(config3D, board, layerWinners, -1, true)).toBeNull();
+    expect(applyMove(config3D, board, layerWinners, 27, true)).toBeNull();
+    expect(applyMove(config3D, board, layerWinners, 1.5, true)).toBeNull();
+  });
+
+  it('rejects malformed state arrays', () => {
+    const { board, layerWinners } = createInitialState(config3D);
+    expect(applyMove(config3D, board.slice(0, -1), layerWinners, 0, true)).toBeNull();
+    expect(applyMove(config3D, board, layerWinners.slice(0, -1), 0, true)).toBeNull();
+  });
+
+  it('rejects moves after a terminal board state', () => {
+    const { board, layerWinners } = createInitialState(config2D4);
+    board[0] = 'X';
+    board[1] = 'X';
+    board[2] = 'X';
+    board[3] = 'X';
+    expect(applyMove(config2D4, board, layerWinners, 4, false)).toBeNull();
+  });
+});

@@ -54,6 +54,7 @@ export function useLeaderboard(userId?: string | null) {
       .gt('games_played', 0)
       .order('points', { ascending: false })
       .order('wins', { ascending: false })
+      .order('id', { ascending: true })
       .limit(10);
 
     if (fetchError) {

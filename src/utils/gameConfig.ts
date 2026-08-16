@@ -4,7 +4,7 @@ import {
   type ViewMode,
   type GameRulesConfig,
   createGameRulesConfig,
-} from '../../supabase/functions/_shared/gameRules';
+} from '../shared/gameRules';
 
 export type { BoardSize, ViewMode };
 export type GameMode = 'PVP' | 'PVE' | 'PVP_ONLINE';

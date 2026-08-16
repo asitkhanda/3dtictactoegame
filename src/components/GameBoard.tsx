@@ -3,7 +3,6 @@ import {
   applyMove,
   BoardState,
   createInitialState,
-  getComputerMove,
   hasLegalMoves,
   LayerResult,
 } from '../utils/gameLogic';
@@ -24,6 +23,7 @@ import { useBoardScale } from '../hooks/useBoardScale';
 import { useBoardViewport } from '../hooks/useBoardViewport';
 import { useRotationSensitivity } from '../hooks/useRotationSensitivity';
 import { useBoardTranslucency } from '../hooks/useBoardTranslucency';
+import { useAiMove } from '../hooks/useAiMove';
 import { layerOpacityToCellAlpha } from '../utils/boardTranslucency';
 import { useIsMobile } from './ui/use-mobile';
 import { Button } from './ui/button';
@@ -98,6 +98,7 @@ export function GameBoard() {
   const showZoomPanel = showZoomControls && !config?.is3D;
   const { sensitivity, setSensitivity, rotationMultiplier } = useRotationSensitivity();
   const { translucency, setTranslucency } = useBoardTranslucency();
+  const { requestMove } = useAiMove();
   const cellOpacity = layerOpacityToCellAlpha(translucency);
   const { viewportRef, boardRef, resetView, setView, activePreset, zoomIn, zoomOut, rotateBy, viewportHandlers } =
     useBoardViewport({
@@ -202,16 +203,14 @@ export function GameBoard() {
 
     const delay = config.size >= 6 ? 400 : 750;
     const timer = setTimeout(() => {
-      const moveIndex = getComputerMove(config, board, layerWinners);
-      if (moveIndex !== -1) {
-        makeMove(moveIndex);
-      } else if (!hasLegalMoves(config, board, layerWinners)) {
-        setDraw(true);
-      }
+      void requestMove(config, board, layerWinners, 'O').then((moveIndex) => {
+        if (moveIndex !== -1) makeMove(moveIndex);
+        else if (!hasLegalMoves(config, board, layerWinners)) setDraw(true);
+      }).catch(() => undefined);
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [config, gameMode, isXNext, winner, draw, board, layerWinners, makeMove]);
+  }, [config, gameMode, isXNext, winner, draw, board, layerWinners, makeMove, requestMove]);
 
   useEffect(() => {
     if (!config || winner || draw) return;

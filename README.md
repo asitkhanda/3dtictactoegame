@@ -67,7 +67,11 @@ Leaderboard, profiles, and online multiplayer use [Supabase](https://supabase.co
 3. Run migrations from `supabase/migrations/`.
 4. Deploy the edge function: `supabase functions deploy submit-move`
 5. Schedule a cron job to run `select public.abandon_stale_matches()` every minute.
-6. Copy `.env.example` to `.env` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+6. Deploy `supabase/functions/settle-stale-matches` and configure a
+   `STALE_MATCH_SECRET`. Schedule it every minute with Supabase Cron/pg_net,
+   sending that secret as the `x-cron-secret` header. This settles active
+   matches after disconnect timeout using the shared tactical evaluator.
+7. Copy `.env.example` to `.env` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 
 ### Scripts
 
