@@ -21,6 +21,7 @@ import { ResumeGameBanner } from './online/ResumeGameBanner';
 import { CreateRoomDialog } from './online/CreateRoomDialog';
 import { JoinRoomDialog } from './online/JoinRoomDialog';
 import { SecretCodeDialog } from './secret/SecretCodeDialog';
+import { LandingSeoContent } from './landing/LandingSeoContent';
 
 interface GameSetupMenuProps {
   onStart: (size: BoardSize, mode: GameMode) => void;
@@ -125,6 +126,8 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
             <LandingBoardPreview />
           </div>
         </main>
+
+        <LandingSeoContent />
 
         <CreateRoomDialog
           open={createOpen}

@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /play/
+Disallow: /join/
+Disallow: /profile
+
+Sitemap: https://twistedtac.com/sitemap.xml
