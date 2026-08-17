@@ -110,7 +110,7 @@ function ScoreHalf({ tone, label, score, threshold, active, thinking, side }: Sc
   return (
     <div
       className={cn(
-        'relative flex min-w-28 -skew-x-[10deg] flex-col items-center gap-0.5 px-5 py-2 sm:min-w-36 sm:px-6',
+        'relative flex min-w-24 -skew-x-[6deg] flex-col items-center gap-0.5 px-4 py-2 sm:min-w-32 sm:px-5',
         // Ice cyan is a light fill in dark mode — it takes navy ink, not white.
         isX ? 'bg-[var(--neon-orange)] text-white' : 'bg-[var(--neon-violet)] text-white dark:text-[#0f1923]',
         side === 'left' ? 'mr-[3px]' : 'ml-[3px]',
@@ -118,7 +118,7 @@ function ScoreHalf({ tone, label, score, threshold, active, thinking, side }: Sc
       )}
     >
       <div className="flex skew-x-[10deg] flex-col items-center gap-0.5">
-        <span className="font-display flex max-w-full items-center gap-1.5 text-[11px] font-bold tracking-[0.22em] uppercase opacity-90">
+        <span className="font-body flex max-w-full items-center gap-1.5 text-[10px] font-bold tracking-[0.12em] uppercase opacity-90">
           <MarkGlyph mark={tone} size={9} color="currentColor" />
           <span className="truncate">{label}</span>
           {thinking && active && <ThinkingDots color="currentColor" />}
@@ -126,7 +126,7 @@ function ScoreHalf({ tone, label, score, threshold, active, thinking, side }: Sc
 
         {threshold > 0 ? (
           <>
-            <span className="font-hero text-3xl leading-none tabular-nums sm:text-4xl">
+            <span className="font-hero text-3xl leading-none tabular-nums sm:text-[2.15rem]">
               {score}
             </span>
             <ScorePips
@@ -182,7 +182,7 @@ export function VersusScoreboard({
   className?: string;
 }) {
   return (
-    <div className={cn('relative inline-flex select-none', className)}>
+    <div className={cn('relative inline-flex max-w-full select-none', className)}>
       <ScoreHalf
         tone="x"
         label={xLabel}
@@ -203,7 +203,7 @@ export function VersusScoreboard({
       />
       <span
         aria-hidden
-        className="absolute top-1/2 left-1/2 z-20 flex size-8 -translate-x-1/2 -translate-y-1/2 rotate-45 items-center justify-center bg-[var(--neon-lime)] shadow-[0_4px_14px_rgba(0,0,0,0.4)]"
+        className="absolute top-1/2 left-1/2 z-20 flex size-7 -translate-x-1/2 -translate-y-1/2 rotate-45 items-center justify-center bg-[var(--neon-lime)] shadow-[0_4px_14px_rgba(0,0,0,0.4)]"
       >
         <span className="font-display -rotate-45 text-[11px] font-extrabold text-[var(--on-accent)]">
           VS

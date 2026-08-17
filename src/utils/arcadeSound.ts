@@ -7,6 +7,9 @@ export type ArcadeSoundName =
   | 'tap'
   | 'placeX'
   | 'placeO'
+  | 'yourTurn'
+  | 'opponentTurn'
+  | 'rotate'
   | 'layerWin'
   | 'layerLost'
   | 'victory'
@@ -55,23 +58,35 @@ const n = (spec: Omit<NoiseSpec, 'kind'>): NoiseSpec => ({ kind: 'noise', ...spe
 const SOUNDS: Record<ArcadeSoundName, SoundSpec[]> = {
   // Soft digital tick — filtered noise with a faint sine body.
   tap: [
-    n({ at: 0, duration: 0.035, gain: 0.5, filterType: 'bandpass', filterFreq: 1900, filterQ: 1.4 }),
-    t({ at: 0, freq: 950, duration: 0.025, type: 'sine', gain: 0.18 }),
+    n({ at: 0, duration: 0.045, gain: 0.55, filterType: 'bandpass', filterFreq: 2400, filterQ: 2 }),
+    t({ at: 0, freq: 1180, duration: 0.045, type: 'triangle', gain: 0.2 }),
   ],
   // Deep tactile thock: sine pitch-drop + muffled noise transient.
   placeX: [
-    t({ at: 0, freq: 215, glideTo: 122, duration: 0.13, type: 'sine', gain: 0.85 }),
-    n({ at: 0, duration: 0.045, gain: 0.4, filterType: 'lowpass', filterFreq: 950 }),
+    t({ at: 0, freq: 190, glideTo: 110, duration: 0.16, type: 'triangle', gain: 0.78 }),
+    t({ at: 0.025, freq: 380, duration: 0.1, type: 'sine', gain: 0.18 }),
+    n({ at: 0, duration: 0.05, gain: 0.5, filterType: 'lowpass', filterFreq: 1050 }),
   ],
   placeO: [
-    t({ at: 0, freq: 265, glideTo: 155, duration: 0.13, type: 'sine', gain: 0.85 }),
-    n({ at: 0, duration: 0.045, gain: 0.4, filterType: 'lowpass', filterFreq: 1200 }),
+    t({ at: 0, freq: 250, glideTo: 170, duration: 0.16, type: 'sine', gain: 0.72 }),
+    t({ at: 0.03, freq: 500, duration: 0.12, type: 'sine', gain: 0.2, echo: true }),
+    n({ at: 0, duration: 0.05, gain: 0.42, filterType: 'lowpass', filterFreq: 1350 }),
   ],
+  // A small two-note signal that makes the player's turn feel like an event.
+  yourTurn: [
+    t({ at: 0, freq: 440, duration: 0.1, type: 'triangle', gain: 0.3 }),
+    t({ at: 0.09, freq: 659.3, duration: 0.18, type: 'sine', gain: 0.38, echo: true }),
+  ],
+  opponentTurn: [
+    t({ at: 0, freq: 330, duration: 0.09, type: 'sine', gain: 0.2 }),
+    n({ at: 0, duration: 0.045, gain: 0.16, filterType: 'bandpass', filterFreq: 1200, filterQ: 1.5 }),
+  ],
+  rotate: [],
   // Priority ping: two soft rising tones with a breath of shimmer.
   layerWin: [
-    t({ at: 0, freq: 660, duration: 0.09, type: 'sine', gain: 0.5, echo: true }),
-    t({ at: 0.1, freq: 990, duration: 0.16, type: 'sine', gain: 0.55, echo: true }),
-    n({ at: 0.1, duration: 0.2, gain: 0.12, filterType: 'highpass', filterFreq: 4500, echo: true }),
+    t({ at: 0, freq: 523.25, duration: 0.1, type: 'triangle', gain: 0.46, echo: true }),
+    t({ at: 0.1, freq: 783.99, duration: 0.2, type: 'sine', gain: 0.52, echo: true }),
+    n({ at: 0.1, duration: 0.2, gain: 0.15, filterType: 'highpass', filterFreq: 4500, echo: true }),
   ],
   layerLost: [
     t({ at: 0, freq: 620, duration: 0.09, type: 'sine', gain: 0.45, echo: true }),
@@ -82,10 +97,10 @@ const SOUNDS: Record<ArcadeSoundName, SoundSpec[]> = {
   // and a long airy shimmer. Cinematic, not chiptune.
   victory: [
     t({ at: 0, freq: 72, glideTo: 48, duration: 0.35, type: 'sine', gain: 0.9 }),
-    t({ at: 0.05, freq: 440, duration: 0.5, type: 'sine', gain: 0.34, attack: 0.05, echo: true }),
-    t({ at: 0.05, freq: 440, duration: 0.5, type: 'sine', gain: 0.2, attack: 0.05, detune: 9, echo: true }),
-    t({ at: 0.2, freq: 554.4, duration: 0.5, type: 'sine', gain: 0.34, attack: 0.05, echo: true }),
-    t({ at: 0.35, freq: 659.3, duration: 0.62, type: 'sine', gain: 0.4, attack: 0.05, echo: true }),
+    t({ at: 0.05, freq: 392, duration: 0.38, type: 'triangle', gain: 0.32, attack: 0.05, echo: true }),
+    t({ at: 0.05, freq: 392, duration: 0.38, type: 'sine', gain: 0.16, attack: 0.05, detune: 9, echo: true }),
+    t({ at: 0.2, freq: 493.88, duration: 0.42, type: 'triangle', gain: 0.34, attack: 0.05, echo: true }),
+    t({ at: 0.35, freq: 587.33, duration: 0.7, type: 'sine', gain: 0.44, attack: 0.05, echo: true }),
     t({ at: 0.35, freq: 880, duration: 0.62, type: 'sine', gain: 0.22, attack: 0.12, detune: -7, echo: true }),
     n({ at: 0.35, duration: 0.7, gain: 0.14, filterType: 'highpass', filterFreq: 5200, attack: 0.08, echo: true }),
   ],
@@ -108,13 +123,17 @@ const SOUNDS: Record<ArcadeSoundName, SoundSpec[]> = {
   ],
 };
 
-// Haptic patterns (ms vibrate / pause / vibrate…) matched to each sound cue.
-// navigator.vibrate is Android-only; iOS silently ignores it.
+// Haptic patterns (ms vibrate / pause / vibrate…) matched to each feedback cue.
+// navigator.vibrate is supported on some Android browsers and unavailable on
+// iOS/macOS web pages. A future native shell can implement this same cue map.
 const VIBRATIONS: Record<ArcadeSoundName, number | number[]> = {
   tap: 8,
-  placeX: 18,
-  placeO: 18,
-  layerWin: [30, 40, 60],
+  placeX: 24,
+  placeO: [12, 25, 20],
+  yourTurn: [16, 45, 28],
+  opponentTurn: 10,
+  rotate: 6,
+  layerWin: [35, 35, 75],
   layerLost: [20, 50, 20],
   victory: [40, 60, 40, 60, 130],
   defeat: [90, 60, 170],
@@ -122,41 +141,12 @@ const VIBRATIONS: Record<ArcadeSoundName, number | number[]> = {
   invalid: 50,
 };
 
-// iOS exposes no vibration API to web pages, but toggling a hidden
-// <input type="checkbox" switch> produces the system's light haptic tick on
-// iOS 17.4+ Safari/WebKit. Single fixed tick only — no patterns.
-let iosHapticInput: HTMLInputElement | null = null;
-
-function iosHapticTick(times: number): void {
-  if (!iosHapticInput) {
-    iosHapticInput = document.createElement('input');
-    iosHapticInput.type = 'checkbox';
-    iosHapticInput.setAttribute('switch', '');
-    iosHapticInput.setAttribute('aria-hidden', 'true');
-    iosHapticInput.tabIndex = -1;
-    iosHapticInput.style.cssText =
-      'position:fixed;top:-100px;left:-100px;width:1px;height:1px;opacity:0;pointer-events:none;';
-    document.body.appendChild(iosHapticInput);
-  }
-  for (let i = 0; i < times; i++) {
-    if (i === 0) {
-      iosHapticInput.click();
-    } else {
-      setTimeout(() => iosHapticInput?.click(), i * 120);
-    }
-  }
-}
-
 function vibrateFor(name: ArcadeSoundName): void {
   try {
     if (typeof navigator.vibrate === 'function') {
       navigator.vibrate(VIBRATIONS[name]);
       return;
     }
-    // Best-effort iOS fallback: approximate patterns with repeated ticks.
-    const pattern = VIBRATIONS[name];
-    const pulses = Array.isArray(pattern) ? Math.ceil(pattern.length / 2) + 1 : 1;
-    iosHapticTick(name === 'tap' ? 1 : pulses);
   } catch {
     /* ignore */
   }
@@ -262,8 +252,8 @@ export function setSoundMuted(muted: boolean): void {
 }
 
 export function playArcadeSound(name: ArcadeSoundName): void {
-  if (isSoundMuted()) return;
   vibrateFor(name);
+  if (isSoundMuted()) return;
   const ctx = getContext();
   if (!ctx || !masterGain) return;
 
@@ -311,4 +301,9 @@ export function playArcadeSound(name: ArcadeSoundName): void {
       src.stop(end + 0.02);
     }
   }
+}
+
+/** Trigger haptics without adding an audible cue, for high-frequency input. */
+export function playArcadeHaptic(name: ArcadeSoundName): void {
+  vibrateFor(name);
 }

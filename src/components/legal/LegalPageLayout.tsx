@@ -22,7 +22,7 @@ export function LegalPageLayout({ title, lastUpdated, children }: LegalPageLayou
           <p className="font-body mt-2 text-sm arcade-text-muted">Last updated: {lastUpdated}</p>
         </header>
 
-        <article className="arcade-glass legal-prose rounded-2xl px-6 py-8 sm:px-8">
+        <article className="ui-surface legal-prose rounded-[var(--ui-radius)] px-6 py-8 sm:px-8">
           {children}
         </article>
 

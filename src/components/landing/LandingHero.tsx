@@ -6,6 +6,8 @@ interface LandingHeroProps {
   onKonamiTouchStart: (e: TouchEvent) => void;
   onKonamiTouchEnd: (e: TouchEvent) => void;
   onKonamiButtonTap: (code: 'KeyB' | 'KeyA') => void;
+  onSecretPressStart: () => void;
+  onSecretPressEnd: () => void;
 }
 
 /** Editorial esports hero — GSAP (in GameSetupMenu) owns the entrance. */
@@ -14,6 +16,8 @@ export function LandingHero({
   onKonamiTouchStart,
   onKonamiTouchEnd,
   onKonamiButtonTap,
+  onSecretPressStart,
+  onSecretPressEnd,
 }: LandingHeroProps) {
   return (
     <div
@@ -22,8 +26,8 @@ export function LandingHero({
       onTouchEnd={onKonamiTouchEnd}
     >
       <div data-hero-tag className="mb-4 flex flex-wrap items-center gap-2">
-        <span className="chamfer-sm font-display inline-block bg-[var(--neon-orange)] px-3 py-1 text-[11px] font-bold tracking-[0.3em] text-white uppercase">
-          Twist the cube
+        <span className="chamfer-sm ui-eyebrow inline-block bg-[var(--neon-orange)] px-3 py-2 text-white">
+          A deeper way to play
         </span>
         {konamiUnlocked && (
           <span className="chamfer-sm font-display inline-flex items-center gap-1 bg-[var(--neon-violet)] px-3 py-1 text-[11px] font-bold tracking-[0.2em] text-[var(--on-accent)] uppercase">
@@ -33,14 +37,21 @@ export function LandingHero({
         )}
       </div>
 
-      <h1 className="font-hero leading-[0.86] tracking-tight uppercase">
+      <h1
+        className="font-hero cursor-default leading-[0.86] tracking-tight uppercase"
+        onPointerDown={onSecretPressStart}
+        onPointerUp={onSecretPressEnd}
+        onPointerCancel={onSecretPressEnd}
+        onContextMenu={(event) => event.preventDefault()}
+        title=""
+      >
         <span data-hero-line className="block overflow-hidden">
-          <span className="block text-[clamp(3.2rem,9.5vw,5.8rem)] text-[var(--arcade-fg)]">
+          <span className="block text-[clamp(3.35rem,9.5vw,5.8rem)] text-[var(--arcade-fg)]">
             Twisted
           </span>
         </span>
         <span data-hero-line className="block overflow-hidden">
-          <span className="block text-[clamp(3.2rem,9.5vw,5.8rem)] text-[var(--neon-orange)]">
+          <span className="block text-[clamp(3.35rem,9.5vw,5.8rem)] text-[var(--neon-orange)]">
             Tac<span className="text-[var(--arcade-fg)]">/</span>
           </span>
         </span>
@@ -48,11 +59,9 @@ export function LandingHero({
 
       <p
         data-hero-tag
-        className="font-display mt-4 max-w-md text-sm font-semibold tracking-[0.18em] uppercase arcade-text-muted"
+        className="font-body mt-4 max-w-md text-sm leading-relaxed arcade-text-muted"
       >
-        Stack layers <span className="text-[var(--neon-orange)]">//</span> Strike through depth{' '}
-        <span className="text-[var(--neon-orange)]">//</span>{' '}
-        <span className="text-[var(--arcade-fg)]">Win the cube</span>
+        Stack layers, strike through depth, and win the cube.
       </p>
 
       {!konamiUnlocked && (

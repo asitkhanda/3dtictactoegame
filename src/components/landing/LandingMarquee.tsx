@@ -12,16 +12,16 @@ export function LandingMarquee() {
   const track = [...ITEMS, ...ITEMS];
 
   return (
-    <div className="relative overflow-hidden border-y border-[var(--game-border)]/40 bg-[var(--game-layer)]/30 py-1.5">
+    <div className="relative overflow-hidden border-y border-[var(--ui-border)] bg-[var(--game-layer)]/20 py-2">
       <div
         className="flex w-max gap-10 whitespace-nowrap"
-        style={{ animation: 'landing-marquee 28s linear infinite' }}
+        style={{ animation: 'landing-marquee 36s linear infinite' }}
       >
         {track.map((item, i) => (
           <span
             key={`${item}-${i}`}
             className={cn(
-              'font-display text-xs font-extrabold tracking-[0.25em] uppercase',
+              'font-body text-[10px] font-semibold tracking-[0.16em] uppercase',
               i % 2 === 0 ? 'arcade-text' : 'arcade-text-muted'
             )}
           >

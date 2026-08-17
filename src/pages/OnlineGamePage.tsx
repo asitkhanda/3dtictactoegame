@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Copy, Loader2, WifiOff } from 'lucide-react';
+import { ArrowLeft, Copy, Loader2, Settings2, WifiOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { useMatch } from '../hooks/useMatch';
@@ -20,6 +20,7 @@ import { ArcadeShell } from '../components/ArcadeShell';
 import { BoardLayer } from '../components/BoardLayer';
 import { BoardCameraJoystick } from '../components/BoardCameraJoystick';
 import { VersusScoreboard } from '../components/game/GameHud';
+import { BoardViewSheet } from '../components/game/BoardViewSheet';
 import { useBoardScale } from '../hooks/useBoardScale';
 import { useBoardViewport } from '../hooks/useBoardViewport';
 import { useRotationSensitivity } from '../hooks/useRotationSensitivity';
@@ -53,12 +54,14 @@ export function OnlineGamePage() {
   const [lastMoveIndex, setLastMoveIndex] = useState<number | null>(null);
   const [opponentLabel, setOpponentLabel] = useState('Opponent');
   const [exitDialogOpen, setExitDialogOpen] = useState(false);
+  const [viewSheetOpen, setViewSheetOpen] = useState(false);
   const [forfeiting, setForfeiting] = useState(false);
   const prevBoardRef = useRef<BoardState | null>(null);
   const prevLayerWinnersRef = useRef<LayerResult[] | null>(null);
   const forfeitInitiatedRef = useRef(false);
   const [layerEvent, setLayerEvent] = useState<LayerWinEvent | null>(null);
   const [showGameOver, setShowGameOver] = useState(false);
+  const previousTurnRef = useRef<boolean | null>(null);
 
   const config = useMemo(
     () => (match ? deserializeGameConfig(match.config) : null),
@@ -76,6 +79,17 @@ export function OnlineGamePage() {
     match && user ? getSymbolForUser(match, user.id) : null;
 
   const isMyTurn = Boolean(match && user && match.current_turn_user_id === user.id);
+
+  useEffect(() => {
+    if (!match || !isGameActive) return;
+    if (previousTurnRef.current === null) {
+      previousTurnRef.current = isMyTurn;
+      return;
+    }
+    if (previousTurnRef.current === isMyTurn) return;
+    previousTurnRef.current = isMyTurn;
+    playArcadeSound(isMyTurn ? 'yourTurn' : 'opponentTurn');
+  }, [match, isGameActive, isMyTurn]);
 
   const opponentId =
     match && user
@@ -154,15 +168,16 @@ export function OnlineGamePage() {
     return () => clearTimeout(timer);
   }, [lastMoveIndex]);
 
+  const isMobile = useIsMobile();
   const boardScale = useBoardScale({
     boardPx: config?.visual.boardPx ?? 300,
     is3D: config?.is3D ?? false,
     layerCount: config?.layerCount ?? 1,
     layerSpacing: config?.visual.layerSpacing ?? 100,
-    hudHeight: 80,
+    hudHeight: isMobile ? 190 : 80,
+    padding: isMobile ? 48 : 32,
   });
 
-  const isMobile = useIsMobile();
   const showCameraJoystick = config?.is3D && !isMobile;
   const { sensitivity, setSensitivity, rotationMultiplier } = useRotationSensitivity();
   const { translucency, setTranslucency } = useBoardTranslucency();
@@ -170,7 +185,7 @@ export function OnlineGamePage() {
 
   const { viewportRef, boardRef, setView, activePreset, zoomIn, zoomOut, rotateBy, viewportHandlers } =
     useBoardViewport({
-      baseScale: boardScale,
+      baseScale: boardScale * (isMobile && config?.is3D ? 0.78 : isMobile ? 0.92 : 1),
       is3D: config?.is3D ?? false,
       enabled: !!config,
       rotationSensitivity: rotationMultiplier,
@@ -418,7 +433,7 @@ export function OnlineGamePage() {
       </div>
 
       <header className="sticky top-0 z-50 shrink-0 px-3 py-2 sm:px-4">
-        <div className="mx-auto w-full max-w-5xl px-1">
+        <div className="ui-surface mx-auto w-full max-w-6xl rounded-[var(--ui-radius)] px-2 py-1.5 sm:px-3">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="size-8" onClick={() => setExitDialogOpen(true)}>
               <ArrowLeft className="size-4" />
@@ -439,13 +454,26 @@ export function OnlineGamePage() {
             </div>
           )}
 
-          <p className="font-body mt-1.5 border-t border-white/10 pt-1.5 text-xs arcade-text-muted">{rulesHint}</p>
+            {isMobile && config && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-8 shrink-0 rounded-full text-[var(--arcade-fg)]/80 hover:bg-white/10 hover:text-[var(--arcade-fg)]"
+                onClick={() => setViewSheetOpen(true)}
+                aria-label="Open board view controls"
+              >
+                <Settings2 className="size-4" />
+              </Button>
+            )}
+
+            <p className="font-body mt-1.5 border-t border-white/10 pt-1.5 text-xs arcade-text-muted">{rulesHint}</p>
         </div>
       </header>
 
-      <main className="relative flex min-h-0 flex-1 flex-col items-center overflow-auto px-3 py-2 sm:px-4">
+      <main className="relative flex min-h-0 flex-1 flex-col items-center overflow-hidden px-3 py-2 sm:px-4 sm:py-3">
         <VersusScoreboard
-          className="z-20 mt-0.5 shrink-0"
+          className="z-20 mt-1 shrink-0 sm:mt-2"
           xLabel={xLabel}
           oLabel={oLabel}
           xScore={xScore}
@@ -457,7 +485,7 @@ export function OnlineGamePage() {
           thinkingSide={mySymbol === 'X' ? 'o' : 'x'}
         />
 
-        <div className="relative mt-2 flex min-h-0 flex-1 items-center justify-center self-stretch">
+        <div className="relative mt-2 flex min-h-0 flex-1 items-center justify-center self-stretch py-1 sm:py-3">
           <div
             ref={viewportRef}
             className={cn(
@@ -519,6 +547,20 @@ export function OnlineGamePage() {
           />
         )}
       </main>
+
+      {config && (
+        <BoardViewSheet
+          open={viewSheetOpen}
+          onOpenChange={setViewSheetOpen}
+          is3D={config.is3D}
+          translucency={translucency}
+          onTranslucencyChange={setTranslucency}
+          onZoomIn={zoomIn}
+          onZoomOut={zoomOut}
+          activePreset={activePreset}
+          onPresetSelect={setView}
+        />
+      )}
 
       <Dialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
         <DialogContent>

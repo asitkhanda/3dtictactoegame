@@ -76,7 +76,7 @@ export function LandingBackground({ variant = 'landing' }: LandingBackgroundProp
 
       {isDark &&
         !staticGameplay &&
-        PARTICLES.map((p) => (
+        PARTICLES.slice(0, isMobile ? 5 : 12).map((p) => (
           <span
             key={p.id}
             className="landing-particle absolute rounded-full"

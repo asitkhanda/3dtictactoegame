@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { playArcadeHaptic } from '../utils/arcadeSound';
 import {
   CAMERA_PRESETS,
   PRESET_TRANSITION_MS,
@@ -70,6 +71,7 @@ export function useBoardViewport({
   const pinchRef = useRef<{ distance: number; zoom: number } | null>(null);
   const velocityRef = useRef({ vx: 0, vy: 0, lastMoveAt: 0 });
   const suppressClickRef = useRef(false);
+  const lastRotationHapticRef = useRef(0);
 
   const [activePreset, setActivePreset] = useState<CameraPresetId | null>('default');
 
@@ -272,6 +274,11 @@ export function useBoardViewport({
       if (!enabled || !is3D) return;
       cancelMomentum();
       applyRotationDelta(deltaX, deltaY);
+      const now = performance.now();
+      if (now - lastRotationHapticRef.current > 90) {
+        lastRotationHapticRef.current = now;
+        playArcadeHaptic('rotate');
+      }
     },
     [enabled, is3D, applyRotationDelta, cancelMomentum]
   );
@@ -407,6 +414,10 @@ export function useBoardViewport({
       };
 
       applyRotationDelta(deltaX, deltaY);
+      if (now - lastRotationHapticRef.current > 90) {
+        lastRotationHapticRef.current = now;
+        playArcadeHaptic('rotate');
+      }
     },
     [enabled, is3D, applyRotationDelta, setZoom]
   );

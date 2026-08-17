@@ -135,7 +135,7 @@ export function ProfilePage() {
         </div>
 
         {profile && (
-          <div className="arcade-glass grid grid-cols-2 gap-3 rounded-2xl p-4 sm:grid-cols-4">
+          <div className="ui-surface grid grid-cols-2 gap-3 rounded-[var(--ui-radius)] p-4 sm:grid-cols-4">
             <Stat label="Points" value={profile.points} />
             <Stat label="Wins" value={profile.wins} />
             <Stat label="Losses" value={profile.losses} />
@@ -143,7 +143,7 @@ export function ProfilePage() {
           </div>
         )}
 
-        <div className="arcade-glass space-y-4 rounded-2xl p-5">
+        <div className="ui-surface space-y-4 rounded-[var(--ui-radius)] p-5">
           <div className="space-y-2">
             <Label htmlFor="username" className="font-body">
               Username <span className="text-destructive">*</span>
@@ -202,7 +202,7 @@ export function ProfilePage() {
         </div>
 
         {activity.length > 0 && (
-          <div className="arcade-glass rounded-2xl p-5">
+          <div className="ui-surface rounded-[var(--ui-radius)] p-5">
             <h2 className="font-display mb-3 text-sm font-bold tracking-wider uppercase arcade-text-muted">
               Recent activity
             </h2>

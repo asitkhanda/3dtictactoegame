@@ -45,5 +45,28 @@ export function BoardTranslucencyControl({
     );
   }
 
-  return null;
+  return (
+    <div className={cn('space-y-2', className)}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-body flex items-center gap-1.5 text-sm font-semibold arcade-text">
+          <Layers className="size-4 text-[var(--neon-violet)]" />
+          Board visibility
+        </span>
+        <span className="font-body text-xs arcade-text-muted">{label}</span>
+      </div>
+      <Slider
+        value={[translucency]}
+        min={MIN_BOARD_TRANSLUCENCY}
+        max={MAX_BOARD_TRANSLUCENCY}
+        step={1}
+        onValueChange={([value]) => onTranslucencyChange(value)}
+        aria-label="Board translucency"
+        className="[&_[data-slot=slider-track]]:h-2 [&_[data-slot=slider-thumb]]:size-5"
+      />
+      <div className="font-body flex justify-between text-[10px] arcade-text-muted">
+        <span>More transparent</span>
+        <span>More solid</span>
+      </div>
+    </div>
+  );
 }

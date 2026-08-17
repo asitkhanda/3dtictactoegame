@@ -23,6 +23,7 @@ interface ModeRowProps {
   subtitle: string;
   icon: ReactNode;
   accent: RowAccent;
+  emphasis?: boolean;
   onClick: () => void;
 }
 
@@ -34,7 +35,7 @@ const ACCENT_HOVER: Record<RowAccent, string> = {
 
 // Valorant-menu row: number tag, title, chevron; the whole bar fills with its
 // accent on hover and shifts right. GSAP staggers these in via [data-mode-row].
-function ModeRow({ index, title, subtitle, icon, accent, onClick }: ModeRowProps) {
+function ModeRow({ index, title, subtitle, icon, accent, emphasis = false, onClick }: ModeRowProps) {
   return (
     <button
       type="button"
@@ -44,19 +45,21 @@ function ModeRow({ index, title, subtitle, icon, accent, onClick }: ModeRowProps
         onClick();
       }}
       className={cn(
-        'chamfer group relative flex w-full items-center gap-4 px-5 py-2.5 text-left arcade-text',
-        'bg-[color-mix(in_oklch,var(--arcade-fg),transparent_93%)]',
+        'chamfer group relative flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left arcade-text sm:gap-4 sm:px-5',
+        emphasis
+          ? 'bg-[var(--neon-orange)] text-white shadow-[0_14px_28px_var(--neon-orange-glow)]'
+          : 'bg-[color-mix(in_oklch,var(--arcade-fg),transparent_93%)]',
         'transition-[background-color,color,transform] duration-150',
         'hover:translate-x-1.5 active:translate-x-2 active:scale-[0.995]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--neon-orange)]/70',
         ACCENT_HOVER[accent]
       )}
     >
-      <span className="font-hero w-9 shrink-0 text-xl text-[var(--neon-orange)] transition-colors group-hover:text-current">
+      <span className="font-display w-8 shrink-0 text-sm font-bold tracking-[0.12em] text-[var(--neon-orange)] transition-colors group-hover:text-current sm:w-9 sm:text-base">
         {index}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="font-display block text-lg leading-tight font-extrabold tracking-[0.08em] uppercase sm:text-xl">
+        <span className="font-display block text-base leading-tight font-bold tracking-[0.03em] uppercase sm:text-lg">
           {title}
         </span>
         <span className="font-body block text-xs opacity-70">{subtitle}</span>
@@ -82,7 +85,7 @@ export function LandingPlayPanel({
     <div className="font-body relative">
       <div data-hero-tag className="mb-3 flex items-center gap-3">
         <span className="h-[2px] w-8 bg-[var(--neon-orange)]" aria-hidden />
-        <p className="font-display text-xs font-bold tracking-[0.3em] uppercase arcade-text-muted">
+        <p className="ui-eyebrow">
           Select mode
         </p>
         <Popover>
@@ -132,38 +135,39 @@ export function LandingPlayPanel({
       <div className="flex flex-col gap-1.5">
         <ModeRow
           index="01"
-          title="VS AI"
-          subtitle="Beat the bot"
+          title="Play vs AI"
+          subtitle="Start a focused match"
           icon={<Bot className="size-4" />}
           accent="red"
+          emphasis
           onClick={() => onStart('PVE')}
         />
         <ModeRow
           index="02"
-          title="2 Player"
-          subtitle="Same-screen showdown"
+          title="Local multiplayer"
+          subtitle="Play together on one screen"
           icon={<Users className="size-4" />}
           accent="ice"
           onClick={() => onStart('PVP')}
         />
         <ModeRow
           index="03"
-          title="Online"
-          subtitle="Challenge the world"
+          title="Play online"
+          subtitle="Challenge another player"
           icon={<Globe className="size-4" />}
           accent="ivory"
           onClick={onCreateOnline}
         />
         <ModeRow
           index="04"
-          title="Join with code"
-          subtitle="Enter a friend's room"
+          title="Join a room"
+          subtitle="Enter a friend's code"
           icon={<KeyRound className="size-4" />}
           accent="ivory"
           onClick={onJoinOnline}
         />
       </div>
-      <p data-hero-tag className="font-body mt-2 text-[10px] arcade-text-muted">
+      <p data-hero-tag className="font-body mt-2 text-xs arcade-text-muted">
         Online play requires sign-in and a username.
       </p>
     </div>

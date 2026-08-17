@@ -4,6 +4,7 @@ import gsap from 'gsap';
 import {
   BoardSize,
   GameMode,
+  type KonamiStep,
   createGameConfig,
   getRulesPreview,
   DEFAULT_BOARD_SIZE,
@@ -19,6 +20,7 @@ import { LandingMarquee } from './landing/LandingMarquee';
 import { ResumeGameBanner } from './online/ResumeGameBanner';
 import { CreateRoomDialog } from './online/CreateRoomDialog';
 import { JoinRoomDialog } from './online/JoinRoomDialog';
+import { SecretCodeDialog } from './secret/SecretCodeDialog';
 
 interface GameSetupMenuProps {
   onStart: (size: BoardSize, mode: GameMode) => void;
@@ -29,6 +31,7 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
   const [selectedSize, setSelectedSize] = useState<BoardSize>(DEFAULT_BOARD_SIZE);
   const [createOpen, setCreateOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
+  const [secretDialogOpen, setSecretDialogOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
   const {
@@ -36,7 +39,22 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
     handleKonamiTouchStart,
     handleKonamiTouchEnd,
     handleKonamiButtonTap,
+    konamiProgress,
+    advanceKonami,
+    resetKonami,
+    handleSecretPressStart,
+    handleSecretPressEnd,
   } = useKonamiUnlock();
+
+  useEffect(() => {
+    const openSecretInput = () => setSecretDialogOpen(true);
+    window.addEventListener('twisted-tac:open-secret-input', openSecretInput);
+    return () => window.removeEventListener('twisted-tac:open-secret-input', openSecretInput);
+  }, []);
+
+  useEffect(() => {
+    if (konamiUnlocked) setSecretDialogOpen(false);
+  }, [konamiUnlocked]);
 
   const config = createGameConfig(selectedSize, '3D');
   const rulesPreview = getRulesPreview(config);
@@ -54,7 +72,12 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
           '-=0.35'
         )
         .from('[data-hero-tag]', { opacity: 0, x: -20, duration: 0.4, stagger: 0.08 }, '-=0.3')
-        .from('[data-mode-row]', { opacity: 0, x: -36, duration: 0.4, stagger: 0.06 }, '-=0.35')
+        .fromTo(
+          '[data-mode-row]',
+          { opacity: 0, x: -24 },
+          { opacity: 1, x: 0, duration: 0.4, stagger: 0.06 },
+          '-=0.35'
+        )
         .from('[data-hero-side]', { opacity: 0, scale: 0.96, duration: 0.6 }, '-=0.5');
     }, rootRef);
     return () => ctx.revert();
@@ -62,24 +85,26 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
 
   return (
     <ArcadeShell variant="landing">
-      <div ref={rootRef} className="relative flex min-h-dvh flex-col">
+      <div ref={rootRef} className="relative flex min-h-dvh flex-col overflow-hidden">
         {/* Signature diagonal slab behind the board preview */}
         <div
           data-hero-slab
           aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] bg-[var(--neon-orange)] lg:block"
+          className="pointer-events-none absolute inset-y-0 right-0 hidden w-[40%] bg-[var(--neon-orange)]/80 lg:block"
           style={{ clipPath: 'polygon(30% 0, 100% 0, 100% 100%, 0 100%)' }}
         />
 
         <AppHeader />
 
-        <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 pt-20 pb-6 sm:px-6 sm:pt-24 lg:grid lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-x-12 lg:pt-16 lg:pb-3">
-          <div className="flex flex-col gap-8 lg:gap-5">
+        <main className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col gap-10 px-4 pt-20 pb-8 sm:px-6 sm:pt-24 lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-x-16 lg:pt-20 lg:pb-8">
+          <div className="flex min-w-0 flex-col gap-8 lg:gap-7">
             <LandingHero
               konamiUnlocked={konamiUnlocked}
               onKonamiTouchStart={handleKonamiTouchStart}
               onKonamiTouchEnd={handleKonamiTouchEnd}
               onKonamiButtonTap={handleKonamiButtonTap}
+              onSecretPressStart={handleSecretPressStart}
+              onSecretPressEnd={handleSecretPressEnd}
             />
 
             <div>
@@ -96,7 +121,7 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
             </div>
           </div>
 
-          <div data-hero-side className="flex items-center justify-center py-4 lg:py-0">
+          <div data-hero-side className="flex min-w-0 items-center justify-center py-2 lg:py-0">
             <LandingBoardPreview />
           </div>
         </main>
@@ -112,8 +137,17 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
           onOpenChange={setJoinOpen}
           onJoined={(matchId) => navigate(`/play/${matchId}`)}
         />
+        <SecretCodeDialog
+          open={secretDialogOpen && !konamiUnlocked}
+          progress={konamiProgress}
+          onOpenChange={setSecretDialogOpen}
+          onStep={(step: KonamiStep) => advanceKonami(step)}
+          onReset={resetKonami}
+        />
 
-        <LandingMarquee />
+        <div className="hidden sm:block">
+          <LandingMarquee />
+        </div>
 
         <footer className="relative z-10 px-4 py-2.5 text-center">
           <nav className="font-body mb-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-[var(--arcade-fg)]/75">

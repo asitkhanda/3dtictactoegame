@@ -103,7 +103,7 @@ export function BoardCameraJoystick({
   }, []);
 
   const panelClass = cn(
-    'arcade-panel pointer-events-auto rounded-2xl p-2',
+    'ui-surface pointer-events-auto rounded-[var(--ui-radius)] p-2',
     className
   );
 

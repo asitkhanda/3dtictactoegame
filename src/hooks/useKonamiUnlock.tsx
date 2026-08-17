@@ -26,6 +26,8 @@ export function useKonamiUnlock() {
   });
   const konamiIndexRef = useRef(0);
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const secretPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [konamiProgress, setKonamiProgress] = useState(0);
 
   const advanceKonami = useCallback((code: string) => {
     if (konamiUnlocked) return;
@@ -35,6 +37,7 @@ export function useKonamiUnlock() {
       const next = konamiIndexRef.current + 1;
       if (next === KONAMI_SEQUENCE.length) {
         konamiIndexRef.current = 0;
+        setKonamiProgress(0);
         setKonamiUnlocked(true);
         try {
           sessionStorage.setItem(KONAMI_STORAGE_KEY, '1');
@@ -44,16 +47,19 @@ export function useKonamiUnlock() {
         showKonamiUnlockToast();
       } else {
         konamiIndexRef.current = next;
+        setKonamiProgress(next);
       }
       return;
     }
 
     if (code === KONAMI_SEQUENCE[0]) {
       konamiIndexRef.current = 1;
+      setKonamiProgress(1);
       return;
     }
 
     konamiIndexRef.current = 0;
+    setKonamiProgress(0);
   }, [konamiUnlocked]);
 
   useEffect(() => {
@@ -98,10 +104,39 @@ export function useKonamiUnlock() {
     [advanceKonami]
   );
 
+  const resetKonami = useCallback(() => {
+    konamiIndexRef.current = 0;
+    setKonamiProgress(0);
+  }, []);
+
+  const handleSecretPressStart = useCallback(() => {
+    if (konamiUnlocked) return;
+    if (secretPressTimerRef.current) clearTimeout(secretPressTimerRef.current);
+    secretPressTimerRef.current = setTimeout(() => {
+      secretPressTimerRef.current = null;
+      resetKonami();
+      window.dispatchEvent(new CustomEvent('twisted-tac:open-secret-input'));
+    }, 900);
+  }, [konamiUnlocked, resetKonami]);
+
+  const handleSecretPressEnd = useCallback(() => {
+    if (secretPressTimerRef.current) {
+      clearTimeout(secretPressTimerRef.current);
+      secretPressTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => () => handleSecretPressEnd(), [handleSecretPressEnd]);
+
   return {
     konamiUnlocked,
+    konamiProgress,
+    advanceKonami,
+    resetKonami,
     handleKonamiTouchStart,
     handleKonamiTouchEnd,
     handleKonamiButtonTap,
+    handleSecretPressStart,
+    handleSecretPressEnd,
   };
 }

@@ -47,7 +47,7 @@ export function LeaderboardPage() {
         </div>
 
         {!isConfigured && (
-          <div className="arcade-glass rounded-2xl p-4 text-center">
+          <div className="ui-surface rounded-[var(--ui-radius)] p-4 text-center">
             <p className="font-body text-sm arcade-text-muted">
               Connect Supabase to enable the live leaderboard.
             </p>
@@ -55,7 +55,7 @@ export function LeaderboardPage() {
         )}
 
         {isConfigured && !user && (
-          <div className="arcade-glass flex flex-col items-center gap-3 rounded-2xl p-5 text-center sm:flex-row sm:justify-between sm:text-left">
+          <div className="ui-surface flex flex-col items-center gap-3 rounded-[var(--ui-radius)] p-5 text-center sm:flex-row sm:justify-between sm:text-left">
             <p className="font-body text-sm arcade-text-muted">
               Sign in and pick a username to compete for a spot on the board.
             </p>
@@ -64,7 +64,7 @@ export function LeaderboardPage() {
         )}
 
         {user && profile?.username && userRank && (
-          <div className="arcade-glass rounded-2xl px-4 py-3 text-center sm:text-left">
+          <div className="ui-surface rounded-[var(--ui-radius)] px-4 py-3 text-center sm:text-left">
             <p className="font-body text-sm">
               Your rank:{' '}
               <span className="font-display font-bold text-[var(--neon-lime)]">#{userRank}</span>
@@ -75,15 +75,15 @@ export function LeaderboardPage() {
         )}
 
         {loading ? (
-          <div className="arcade-glass rounded-2xl">
+            <div className="ui-surface rounded-[var(--ui-radius)]">
             <p className="font-body p-8 text-center text-sm arcade-text-muted">Loading…</p>
           </div>
         ) : error ? (
-          <div className="arcade-glass rounded-2xl">
+            <div className="ui-surface rounded-[var(--ui-radius)]">
             <p className="font-body p-8 text-center text-sm text-destructive">{error}</p>
           </div>
         ) : entries.length === 0 ? (
-          <div className="arcade-glass rounded-2xl">
+          <div className="ui-surface rounded-[var(--ui-radius)]">
             <p className="font-body p-8 text-center text-sm arcade-text-muted">
               No ranked players yet. Be the first to claim the top spot.
             </p>
@@ -101,7 +101,7 @@ export function LeaderboardPage() {
                   <div
                     key={entry.id}
                     className={cn(
-                      'arcade-glass relative flex flex-col items-center rounded-xl border-2 px-2 pt-7 pb-4 text-center shadow-[0_6px_0_rgba(0,0,0,0.35)] sm:px-4',
+                      'ui-surface relative flex flex-col items-center rounded-[var(--ui-radius)] border-2 px-2 pt-7 pb-4 text-center shadow-[0_6px_0_rgba(0,0,0,0.35)] sm:px-4',
                       first ? 'sm:-translate-y-3' : 'sm:translate-y-1',
                       entry.id === user?.id && 'ring-2 ring-[var(--neon-lime)]/50'
                     )}
@@ -135,7 +135,7 @@ export function LeaderboardPage() {
             </div>
 
             {entries.length > 3 && (
-              <div className="arcade-glass overflow-hidden rounded-2xl border-2 border-[var(--arcade-glass-border)]">
+              <div className="ui-surface overflow-hidden rounded-[var(--ui-radius)] border-2 border-[var(--ui-border)]">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-white/10 hover:bg-transparent">

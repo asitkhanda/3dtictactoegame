@@ -40,8 +40,10 @@ import {
   Info,
   Volume2,
   VolumeX,
+  Settings2,
 } from 'lucide-react';
 import { VersusScoreboard } from './game/GameHud';
+import { BoardViewSheet } from './game/BoardViewSheet';
 import { GameOverOverlay, type GameOverOutcome } from './game/GameOverOverlay';
 import { LayerWinStinger, type LayerWinEvent } from './game/LayerWinStinger';
 import { playArcadeSound } from '../utils/arcadeSound';
@@ -83,17 +85,20 @@ export function GameBoard() {
   const [rulesOpen, setRulesOpen] = useState(false);
   const [layerEvent, setLayerEvent] = useState<LayerWinEvent | null>(null);
   const [showGameOver, setShowGameOver] = useState(false);
+  const [viewSheetOpen, setViewSheetOpen] = useState(false);
+  const previousTurnRef = useRef<boolean | null>(null);
 
+  const isMobile = useIsMobile();
   const boardScale = useBoardScale({
     boardPx: config?.visual.boardPx ?? 300,
     is3D: config?.is3D ?? false,
     layerCount: config?.layerCount ?? 1,
     layerSpacing: config?.visual.layerSpacing ?? 100,
-    hudHeight: 80,
+    hudHeight: isMobile ? 190 : 80,
+    padding: isMobile ? 48 : 32,
   });
 
   const showZoomControls = (config?.size ?? 0) >= 3;
-  const isMobile = useIsMobile();
   const showCameraJoystick = config?.is3D && !isMobile;
   const showZoomPanel = showZoomControls && !config?.is3D;
   const { sensitivity, setSensitivity, rotationMultiplier } = useRotationSensitivity();
@@ -102,7 +107,7 @@ export function GameBoard() {
   const cellOpacity = layerOpacityToCellAlpha(translucency);
   const { viewportRef, boardRef, resetView, setView, activePreset, zoomIn, zoomOut, rotateBy, viewportHandlers } =
     useBoardViewport({
-      baseScale: boardScale,
+      baseScale: boardScale * (isMobile && config?.is3D ? 0.78 : isMobile ? 0.92 : 1),
       is3D: config?.is3D ?? false,
       enabled: !!config,
       rotationSensitivity: rotationMultiplier,
@@ -136,6 +141,17 @@ export function GameBoard() {
   useEffect(() => {
     if (config) resetGameState();
   }, [config, resetGameState]);
+
+  useEffect(() => {
+    if (!config || gameMode !== 'PVE' || winner || draw) return;
+    if (previousTurnRef.current === null) {
+      previousTurnRef.current = isXNext;
+      return;
+    }
+    if (previousTurnRef.current === isXNext) return;
+    previousTurnRef.current = isXNext;
+    playArcadeSound(isXNext ? 'yourTurn' : 'opponentTurn');
+  }, [config, gameMode, isXNext, winner, draw]);
 
   useEffect(() => {
     if (lastMoveIndex === null) return;
@@ -329,7 +345,7 @@ export function GameBoard() {
       </div>
 
       <header className="sticky top-0 z-50 shrink-0 px-3 py-2 sm:px-4">
-        <div className="mx-auto w-full max-w-5xl px-1">
+        <div className="ui-surface mx-auto w-full max-w-6xl rounded-[var(--ui-radius)] px-2 py-1.5 sm:px-3">
           <div className="flex items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -348,7 +364,7 @@ export function GameBoard() {
 
             <div className="min-w-0 flex-1">
               <div className="flex min-w-0 items-center gap-1.5">
-                <h1 className="font-display truncate text-sm font-extrabold tracking-tight sm:text-base">
+                <h1 className="font-display truncate text-sm font-bold tracking-tight sm:text-base">
                   {boardTitle}
                 </h1>
                 <span className="font-body hidden shrink-0 rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase sm:inline dark:border-white/15">
@@ -395,6 +411,18 @@ export function GameBoard() {
               <TooltipContent>{muted ? 'Sound off' : 'Sound on'}</TooltipContent>
             </Tooltip>
 
+            {isMobile && config && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={arcadeIconBtn}
+                onClick={() => setViewSheetOpen(true)}
+                aria-label="Open board view controls"
+              >
+                <Settings2 className="size-4" />
+              </Button>
+            )}
+
             <ThemeToggle className={arcadeIconBtn} />
           </div>
 
@@ -422,9 +450,9 @@ export function GameBoard() {
         </div>
       </header>
 
-      <main className="relative flex min-h-0 flex-1 flex-col items-center overflow-auto px-3 py-2 sm:px-4">
+      <main className="relative flex min-h-0 flex-1 flex-col items-center overflow-hidden px-3 py-2 sm:px-4 sm:py-3">
         <VersusScoreboard
-          className="z-20 mt-0.5 shrink-0"
+          className="z-20 mt-1 shrink-0 sm:mt-2"
           xLabel={gameMode === 'PVE' ? 'You' : 'X'}
           oLabel={gameMode === 'PVE' ? 'AI' : 'O'}
           xScore={xScore}
@@ -449,7 +477,7 @@ export function GameBoard() {
           </p>
         )}
 
-        <div className="relative flex min-h-0 flex-1 items-center justify-center self-stretch">
+        <div className="relative flex min-h-0 flex-1 items-center justify-center self-stretch py-1 sm:py-3">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 flex items-center justify-center"
@@ -555,6 +583,20 @@ export function GameBoard() {
           />
         )}
       </main>
+
+      {config && (
+        <BoardViewSheet
+          open={viewSheetOpen}
+          onOpenChange={setViewSheetOpen}
+          is3D={config.is3D}
+          translucency={translucency}
+          onTranslucencyChange={setTranslucency}
+          onZoomIn={zoomIn}
+          onZoomOut={zoomOut}
+          activePreset={activePreset}
+          onPresetSelect={setView}
+        />
+      )}
 
       <LayerWinStinger event={layerEvent} />
 
