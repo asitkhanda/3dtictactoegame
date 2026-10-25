@@ -15,7 +15,7 @@ On the classic **3×3×3** board, you can win in two ways:
 1. **Layer wins** — complete a row, column, or diagonal on a single layer. First to **2 of 3 layers** takes the match.
 2. **3D lines** — connect three marks through the stack (vertical columns, depth diagonals, and space diagonals).
 
-Once a layer is won, it locks — no more moves on that layer. If neither player can reach the win threshold and no legal moves remain, the game ends in a **draw**.
+Once a layer is won, it locks — no more moves on that layer. The game ends in a **draw** only when no legal moves remain: every empty cell is either filled or sits on a locked layer.
 
 ---
 
@@ -66,11 +66,12 @@ Leaderboard, profiles, and online multiplayer use [Supabase](https://supabase.co
 2. Add redirect URLs for `http://localhost:3000` and your production domain.
 3. Run migrations from `supabase/migrations/`.
 4. Deploy the edge function: `supabase functions deploy submit-move`
-5. Schedule a cron job to run `select public.abandon_stale_matches()` every minute.
+5. Schedule a cron job to run `select public.abandon_stale_matches()` every minute. It only expires lobbies that never got a guest.
 6. Deploy `supabase/functions/settle-stale-matches` and configure a
    `STALE_MATCH_SECRET`. Schedule it every minute with Supabase Cron/pg_net,
    sending that secret as the `x-cron-secret` header. This settles active
-   matches after disconnect timeout using the shared tactical evaluator.
+   matches after a 10-minute disconnect timeout: whoever is still connected
+   wins, and if both players are gone the match is abandoned with no scoring.
 7. Copy `.env.example` to `.env` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 
 ### Scripts
