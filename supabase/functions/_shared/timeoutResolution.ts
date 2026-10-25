@@ -3,7 +3,7 @@ import {
   type BoardState,
   type GameRulesConfig,
   type LayerResult,
-} from './gameRules';
+} from './gameRules.ts';
 
 /**
  * Winner of a match whose opponent stayed disconnected past the timeout.
