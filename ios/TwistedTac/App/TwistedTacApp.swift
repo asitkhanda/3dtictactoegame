@@ -4,7 +4,7 @@ import SwiftUI
 struct TwistedTacApp: App {
     @State private var settings = GameSettings()
     @State private var auth = AuthManager()
-    @State private var secrets = SecretSizes()
+    @State private var largeBoards = LargeBoards()
     @State private var links = DeepLinkRouter()
 
     var body: some Scene {
@@ -12,7 +12,7 @@ struct TwistedTacApp: App {
             RootView()
                 .environment(settings)
                 .environment(auth)
-                .environment(secrets)
+                .environment(largeBoards)
                 .environment(links)
                 .preferredColorScheme(.dark)
         }

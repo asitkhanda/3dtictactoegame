@@ -47,6 +47,13 @@ export function LegalPageLayout({ title, lastUpdated, children }: LegalPageLayou
           >
             Terms of Service
           </Link>
+          <span aria-hidden>·</span>
+          <Link
+            to="/support"
+            className="underline-offset-4 hover:text-[var(--neon-orange)] hover:underline"
+          >
+            Support
+          </Link>
         </nav>
       </main>
     </ArcadeShell>

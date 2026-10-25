@@ -5,10 +5,9 @@ struct LandingView: View {
     let onNavigate: (Destination) -> Void
 
     @Environment(AuthManager.self) private var auth
-    @Environment(SecretSizes.self) private var secrets
+    @Environment(LargeBoards.self) private var largeBoards
     @State private var showRules = false
     @State private var showSignIn = false
-    @State private var showSecretCode = false
 
     var body: some View {
         ZStack {
@@ -22,10 +21,6 @@ struct LandingView: View {
                         .foregroundStyle(Theme.foreground)
                         .minimumScaleFactor(0.6)
                         .lineLimit(1)
-                        .onLongPressGesture(minimumDuration: 0.9) {
-                            secrets.resetCode()
-                            showSecretCode = true
-                        }
                         .accessibilityAddTraits(.isHeader)
                     Text("Stack layers. Strike through depth. Win the cube.")
                         .font(.callout)
@@ -72,7 +67,7 @@ struct LandingView: View {
                 .frame(maxWidth: 420)
                 .padding(.horizontal, 28)
 
-                if secrets.unlocked { sizePicker }
+                if largeBoards.isUnlocked { sizePicker }
 
                 Spacer()
                 Text("Local games are casual. Ranked play is online only.")
@@ -82,16 +77,6 @@ struct LandingView: View {
             }
         }
         .overlay(alignment: .topTrailing) { accountButton }
-        .overlay(alignment: .top) { unlockBanner }
-        // Swiping ↑ ↑ ↓ ↓ ← → ← → anywhere on the menu feeds the secret code.
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 40).onEnded { value in
-                if let step = konamiSwipeStep(dx: value.translation.width, dy: value.translation.height) {
-                    secrets.enter(step)
-                }
-            }
-        )
-        .sheet(isPresented: $showSecretCode) { SecretCodeSheet() }
         .sheet(isPresented: $showRules) { RulesSheet() }
         .sheet(isPresented: $showSignIn) { SignInSheet() }
     }
@@ -128,30 +113,18 @@ struct LandingView: View {
         .tint(prominent ? Theme.playerX : Theme.playerO.opacity(0.6))
     }
 
-    private var boardSize: Int { secrets.effectiveSize }
-    private var boardViewMode: ViewMode { secrets.effectiveViewMode }
-
-    @ViewBuilder
-    private var unlockBanner: some View {
-        if secrets.justUnlocked {
-            Label("Secret boards unlocked — 1×1 through 8×8", systemImage: "sparkles")
-                .font(.subheadline.weight(.semibold))
-                .padding(.horizontal, 16).padding(.vertical, 10)
-                .glassEffect(.regular.tint(Theme.playerO.opacity(0.4)), in: .capsule)
-                .padding(.top, 60)
-                .transition(.scale.combined(with: .opacity))
-        }
-    }
+    private var boardSize: Int { largeBoards.effectiveSize }
+    private var boardViewMode: ViewMode { largeBoards.effectiveViewMode }
 
     private var sizePicker: some View {
-        @Bindable var secrets = secrets
+        @Bindable var largeBoards = largeBoards
         return VStack(spacing: 6) {
-            Text("SECRET BOARDS").font(.caption2.weight(.bold)).foregroundStyle(Theme.playerO)
+            Text("LARGE BOARDS (DEV)").font(.caption2.weight(.bold)).foregroundStyle(Theme.playerO)
             HStack {
-                Stepper(sizeLabel, value: $secrets.size, in: 1...8)
+                Stepper(sizeLabel, value: $largeBoards.size, in: 1...8)
                     .accessibilityLabel("Board size")
                     .accessibilityValue(sizeLabel)
-                Toggle("2D", isOn: $secrets.isFlat).labelsHidden()
+                Toggle("2D", isOn: $largeBoards.isFlat).labelsHidden()
                 Text("2D").font(.caption)
             }
             .padding(.horizontal, 14).padding(.vertical, 8)
@@ -162,6 +135,6 @@ struct LandingView: View {
     }
 
     private var sizeLabel: String {
-        secrets.size == 1 ? "The Void" : secrets.isFlat ? "\(secrets.size)×\(secrets.size) flat" : "\(secrets.size)×\(secrets.size)×\(secrets.size)"
+        largeBoards.size == 1 ? "The Void" : largeBoards.isFlat ? "\(largeBoards.size)×\(largeBoards.size) flat" : "\(largeBoards.size)×\(largeBoards.size)×\(largeBoards.size)"
     }
 }

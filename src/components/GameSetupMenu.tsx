@@ -4,12 +4,10 @@ import gsap from 'gsap';
 import {
   BoardSize,
   GameMode,
-  type KonamiStep,
   createGameConfig,
   getRulesPreview,
   DEFAULT_BOARD_SIZE,
 } from '../utils/gameConfig';
-import { useKonamiUnlock } from '../hooks/useKonamiUnlock';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import { ArcadeShell } from './ArcadeShell';
 import { AppHeader } from './layout/AppHeader';
@@ -20,7 +18,7 @@ import { LandingMarquee } from './landing/LandingMarquee';
 import { ResumeGameBanner } from './online/ResumeGameBanner';
 import { CreateRoomDialog } from './online/CreateRoomDialog';
 import { JoinRoomDialog } from './online/JoinRoomDialog';
-import { SecretCodeDialog } from './secret/SecretCodeDialog';
+import { IosBetaCard } from './landing/IosBetaCard';
 import { LandingSeoContent } from './landing/LandingSeoContent';
 
 interface GameSetupMenuProps {
@@ -29,35 +27,13 @@ interface GameSetupMenuProps {
 
 export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
   const navigate = useNavigate();
-  const [selectedSize, setSelectedSize] = useState<BoardSize>(DEFAULT_BOARD_SIZE);
   const [createOpen, setCreateOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
-  const [secretDialogOpen, setSecretDialogOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
-  const {
-    konamiUnlocked,
-    handleKonamiTouchStart,
-    handleKonamiTouchEnd,
-    handleKonamiButtonTap,
-    konamiProgress,
-    advanceKonami,
-    resetKonami,
-    handleSecretPressStart,
-    handleSecretPressEnd,
-  } = useKonamiUnlock();
 
-  useEffect(() => {
-    const openSecretInput = () => setSecretDialogOpen(true);
-    window.addEventListener('twisted-tac:open-secret-input', openSecretInput);
-    return () => window.removeEventListener('twisted-tac:open-secret-input', openSecretInput);
-  }, []);
-
-  useEffect(() => {
-    if (konamiUnlocked) setSecretDialogOpen(false);
-  }, [konamiUnlocked]);
-
-  const config = createGameConfig(selectedSize, '3D');
+  // The classic 3×3×3 cube. Other board sizes are being reserved for the app.
+  const config = createGameConfig(DEFAULT_BOARD_SIZE, '3D');
   const rulesPreview = getRulesPreview(config);
 
   // GSAP owns the entrance choreography: slab wipe → title lines rise →
@@ -99,27 +75,19 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
 
         <main className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col gap-10 px-4 pt-20 pb-8 sm:px-6 sm:pt-24 lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-x-16 lg:pt-20 lg:pb-8">
           <div className="flex min-w-0 flex-col gap-8 lg:gap-7">
-            <LandingHero
-              konamiUnlocked={konamiUnlocked}
-              onKonamiTouchStart={handleKonamiTouchStart}
-              onKonamiTouchEnd={handleKonamiTouchEnd}
-              onKonamiButtonTap={handleKonamiButtonTap}
-              onSecretPressStart={handleSecretPressStart}
-              onSecretPressEnd={handleSecretPressEnd}
-            />
+            <LandingHero />
 
             <div>
               <ResumeGameBanner />
               <LandingPlayPanel
-                selectedSize={selectedSize}
-                onSizeChange={setSelectedSize}
-                konamiUnlocked={konamiUnlocked}
                 rulesPreview={rulesPreview}
-                onStart={(mode) => onStart(selectedSize, mode)}
+                onStart={(mode) => onStart(DEFAULT_BOARD_SIZE, mode)}
                 onCreateOnline={() => setCreateOpen(true)}
                 onJoinOnline={() => setJoinOpen(true)}
               />
             </div>
+
+            <IosBetaCard />
           </div>
 
           <div data-hero-side className="flex min-w-0 items-center justify-center py-2 lg:py-0">
@@ -132,7 +100,7 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
         <CreateRoomDialog
           open={createOpen}
           onOpenChange={setCreateOpen}
-          boardSize={selectedSize}
+          boardSize={DEFAULT_BOARD_SIZE}
           onCreated={(matchId) => navigate(`/play/${matchId}`)}
         />
         <JoinRoomDialog
@@ -140,14 +108,6 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
           onOpenChange={setJoinOpen}
           onJoined={(matchId) => navigate(`/play/${matchId}`)}
         />
-        <SecretCodeDialog
-          open={secretDialogOpen && !konamiUnlocked}
-          progress={konamiProgress}
-          onOpenChange={setSecretDialogOpen}
-          onStep={(step: KonamiStep) => advanceKonami(step)}
-          onReset={resetKonami}
-        />
-
         <div className="hidden sm:block">
           <LandingMarquee />
         </div>
@@ -166,6 +126,13 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
               className="underline-offset-4 transition-colors hover:text-[var(--neon-orange)] hover:underline"
             >
               Terms of Service
+            </Link>
+            <span aria-hidden>·</span>
+            <Link
+              to="/support"
+              className="underline-offset-4 transition-colors hover:text-[var(--neon-orange)] hover:underline"
+            >
+              Support
             </Link>
           </nav>
           <p className="text-xs arcade-text-muted">

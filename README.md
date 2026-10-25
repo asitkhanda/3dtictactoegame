@@ -36,7 +36,7 @@ Only **online** matches are ranked — wins, draws and losses move your score th
 - Interactive **3D board** — rotate with the joystick, zoom in and out
 - Neon arcade-style UI with smooth piece animations
 - **Leaderboard** and player profiles
-- **Secret board sizes** (1×1 through 8×8) — find the easter egg on the landing page
+- **iPhone and iPad app (beta)** — native SwiftUI + RealityKit app in `ios/`, on TestFlight. Larger board sizes are reserved for the app.
 - Works offline for AI and local two-player; online features need a backend connection
 
 ---

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { LegalPageLayout } from '../components/legal/LegalPageLayout';
 
-const LAST_UPDATED = 'June 26, 2026';
+const LAST_UPDATED = 'October 25, 2026';
 const CONTACT_EMAIL = 'asitsignals@gmail.com';
 
 export function PrivacyPolicyPage() {
@@ -9,8 +9,10 @@ export function PrivacyPolicyPage() {
     <LegalPageLayout title="Privacy Policy" lastUpdated={LAST_UPDATED}>
       <p>
         Twisted Tac (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;) operates{' '}
-        <a href="https://twistedtac.com">twistedtac.com</a>, a free browser game. This Privacy
-        Policy explains what information we collect, how we use it, and your choices.
+        <a href="https://twistedtac.com">twistedtac.com</a>, a free browser game, and the Twisted
+        Tac app for iPhone and iPad (currently in beta). This Privacy Policy explains what
+        information we collect, how we use it, and your choices. It applies to the website and the
+        app unless a section says otherwise.
       </p>
 
       <h2>1. Information we collect</h2>
@@ -29,7 +31,15 @@ export function PrivacyPolicyPage() {
         If you choose to sign in, we use Google OAuth through our authentication provider,
         Supabase. Google may share basic profile information with us, such as your name, email
         address, and profile picture, according to your Google account settings and Google&apos;s
-        privacy policy.
+        privacy policy. Google sign-in is available on the website and in the iPhone and iPad app.
+      </p>
+
+      <h3>When you sign in with Apple (iPhone and iPad app)</h3>
+      <p>
+        The app also offers Sign in with Apple. Apple may share your name and an email address
+        with us. If you choose Apple&apos;s &ldquo;Hide My Email&rdquo; option, we receive a
+        private relay address instead of your real one. We only receive what you allow Apple to
+        share.
       </p>
 
       <h3>Account and gameplay data</h3>
@@ -56,7 +66,14 @@ export function PrivacyPolicyPage() {
       <h3>Automatically collected information</h3>
       <p>
         Our hosting and infrastructure providers may process standard technical data such as IP
-        address, browser type, device information, and request logs when you access the site.
+        address, browser type, device information, and request logs when you access the site or
+        use the app.
+      </p>
+      <p>
+        The iPhone and iPad app does not include advertising, analytics or tracking software, and
+        we do not track you across other companies&apos; apps or websites. If you install the beta
+        through Apple&apos;s TestFlight, Apple may share crash reports and any feedback you choose
+        to send, according to your device settings.
       </p>
 
       <h2>2. How we use your information</h2>
@@ -80,14 +97,23 @@ export function PrivacyPolicyPage() {
       <h2>4. Cookies and local storage</h2>
       <p>
         We use cookies and similar technologies through Supabase to maintain your sign-in session.
-        We also use browser storage for non-account settings as described above. You can clear
-        cookies and local storage in your browser settings, though doing so may sign you out or
-        reset preferences.
+        We also use browser storage for non-account settings as described above. In the iPhone and
+        iPad app, preferences such as sound and haptics are stored on your device. You can clear
+        cookies and local storage in your browser settings, or delete the app, though doing so may
+        sign you out or reset preferences.
       </p>
 
       <h2>5. Third-party services</h2>
       <p>We rely on the following third parties to run Twisted Tac:</p>
       <ul>
+        <li>
+          <strong>Apple</strong> — Sign in with Apple, and TestFlight and App Store distribution of
+          the iPhone and iPad app. See{' '}
+          <a href="https://www.apple.com/legal/privacy/" rel="noreferrer" target="_blank">
+            Apple&apos;s Privacy Policy
+          </a>
+          .
+        </li>
         <li>
           <strong>Google</strong> — sign-in authentication. See{' '}
           <a href="https://policies.google.com/privacy" rel="noreferrer" target="_blank">
@@ -121,8 +147,13 @@ export function PrivacyPolicyPage() {
       <h2>6. Data retention</h2>
       <p>
         We retain account and gameplay data for as long as your account is active or as needed to
-        provide the service. Inactive online matches may be cleaned up automatically. You may
-        request deletion of your account and associated data by contacting us at{' '}
+        provide the service. Inactive online matches may be cleaned up automatically.
+      </p>
+      <p>
+        <strong>Deleting your account.</strong> In the iPhone and iPad app, open your profile and
+        choose <em>Delete account</em>. This permanently deletes your profile, statistics and game
+        history, and, if you signed in with Apple, revokes the app&apos;s access to your Apple
+        account. On the website, you can request deletion by contacting us at{' '}
         <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
       </p>
 

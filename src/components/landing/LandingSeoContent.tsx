@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export function LandingSeoContent() {
   return (
     <section
@@ -34,7 +36,11 @@ export function LandingSeoContent() {
             </summary>
             <p className="font-body mt-2 text-sm leading-relaxed arcade-text-muted">
               Yes. The browser game supports touch controls, mobile layouts, AI matches, and local
-              multiplayer.
+              multiplayer. A native iPhone and iPad app is also in beta on TestFlight; see the{' '}
+              <Link to="/support#ios-beta" className="underline underline-offset-4">
+                support page
+              </Link>{' '}
+              to request access.
             </p>
           </details>
           <details className="group border-b border-[var(--arcade-fg)]/10 pb-3">

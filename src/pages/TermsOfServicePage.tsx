@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { LegalPageLayout } from '../components/legal/LegalPageLayout';
 
-const LAST_UPDATED = 'June 26, 2026';
+const LAST_UPDATED = 'October 25, 2026';
 const CONTACT_EMAIL = 'asitsignals@gmail.com';
 
 export function TermsOfServicePage() {
@@ -9,13 +9,14 @@ export function TermsOfServicePage() {
     <LegalPageLayout title="Terms of Service" lastUpdated={LAST_UPDATED}>
       <p>
         Welcome to Twisted Tac. These Terms of Service (&ldquo;Terms&rdquo;) govern your access to
-        and use of <a href="https://twistedtac.com">twistedtac.com</a> and the Twisted Tac game
-        (the &ldquo;Service&rdquo;). By using the Service, you agree to these Terms.
+        and use of <a href="https://twistedtac.com">twistedtac.com</a>, the Twisted Tac game, and the
+        Twisted Tac app for iPhone and iPad (together, the &ldquo;Service&rdquo;). By using the Service, you agree to these Terms.
       </p>
 
       <h2>1. The Service</h2>
       <p>
-        Twisted Tac is a free browser-based game that offers solo play, play against an AI
+        Twisted Tac is a free game, played in a browser or in the iPhone and iPad app (currently in
+        beta), that offers solo play, play against an AI
         opponent, local two-player mode on one device, and optional online multiplayer with
         leaderboards when you sign in. We may add, change, or remove features at any time.
       </p>
@@ -29,7 +30,8 @@ export function TermsOfServicePage() {
 
       <h2>3. Accounts</h2>
       <p>
-        Online play, profiles, and leaderboards require signing in with Google. You are responsible
+        Online play, profiles, and leaderboards require signing in with Google or, in the iPhone and
+        iPad app, Sign in with Apple. You are responsible
         for activity that occurs under your account. Usernames must be 3–20 characters and may
         contain only letters, numbers, and underscores. You may not impersonate others or choose
         names that are offensive, misleading, or infringe third-party rights.

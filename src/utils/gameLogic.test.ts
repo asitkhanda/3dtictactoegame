@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createGameConfig, getKonamiSwipeStep } from './gameConfig';
+import { createGameConfig } from './gameConfig';
 import {
   applyMove,
   checkCrossLayerWinner,
@@ -16,19 +16,6 @@ const config2D4 = createGameConfig(4, '2D');
 const config3D4 = createGameConfig(4, '3D');
 const config1 = createGameConfig(1, '3D');
 const config2x3D = createGameConfig(2, '3D');
-
-describe('konami swipe mapping', () => {
-  it('maps dominant swipes to arrow steps', () => {
-    expect(getKonamiSwipeStep(0, -50)).toBe('ArrowUp');
-    expect(getKonamiSwipeStep(0, 50)).toBe('ArrowDown');
-    expect(getKonamiSwipeStep(-50, 0)).toBe('ArrowLeft');
-    expect(getKonamiSwipeStep(50, 0)).toBe('ArrowRight');
-  });
-
-  it('ignores swipes below threshold', () => {
-    expect(getKonamiSwipeStep(10, 10)).toBeNull();
-  });
-});
 
 describe('3x3 regression', () => {
   it('generates 8 lines per layer', () => {
