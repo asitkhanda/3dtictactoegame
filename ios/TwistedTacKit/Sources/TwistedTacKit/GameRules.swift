@@ -130,6 +130,11 @@ public struct GameState: Sendable, Equatable {
     public var board: Board
     public var layerWinners: [LayerResult]
 
+    public init(board: Board, layerWinners: [LayerResult]) {
+        self.board = board
+        self.layerWinners = layerWinners
+    }
+
     public init(config: GameRulesConfig) {
         board = Board(repeating: nil, count: config.cellCount)
         layerWinners = Array(repeating: LayerResult(), count: config.layerCount)

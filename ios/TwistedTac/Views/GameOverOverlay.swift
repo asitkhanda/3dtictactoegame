@@ -1,39 +1,21 @@
 import SwiftUI
 import TwistedTacKit
 
+/// End-of-game card. Callers supply the words and colour so local and online
+/// games can share it.
 struct GameOverOverlay: View {
-    let outcome: GameOutcome
-    let mode: LocalMode
-    let boardSize: Int
-    let isFlat: Bool
-    let onRematch: () -> Void
-    let onMenu: () -> Void
+    let title: String
+    let subtitle: String
+    let accent: Color
+    /// Ranked points earned (or lost) — online games only.
+    var points: Int?
+    let primaryLabel: String
+    var primaryIcon: String = "arrow.counterclockwise"
+    let onPrimary: () -> Void
     let onViewBoard: () -> Void
+    let onMenu: () -> Void
 
     @State private var shown = false
-
-    private var title: String {
-        switch outcome {
-        case .draw: "STALEMATE"
-        case let .win(player):
-            mode == .vsAI ? (player == .x ? "YOU WIN" : "AI WINS") : "\(player.rawValue) TAKES IT"
-        }
-    }
-
-    private var subtitle: String {
-        switch outcome {
-        case .draw: "The cube holds. Nobody cracked it."
-        case .win:
-            if boardSize == 1 { "The void is claimed." } else if isFlat { "Line complete." } else { "The stack is yours." }
-        }
-    }
-
-    private var accent: Color {
-        switch outcome {
-        case .draw: Theme.playerO
-        case let .win(player): mode == .vsAI && player == .o ? Theme.playerO : (mode == .twoPlayer ? Theme.color(for: player) : Theme.playerX)
-        }
-    }
 
     var body: some View {
         ZStack {
@@ -46,9 +28,16 @@ struct GameOverOverlay: View {
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
                 Text(subtitle).font(.callout).foregroundStyle(Theme.muted)
+                    .multilineTextAlignment(.center)
+                if let points {
+                    Text(points > 0 ? "+\(points) rank points" : points < 0 ? "\(points) rank points" : "No rank points")
+                        .font(.headline)
+                        .padding(.horizontal, 14).padding(.vertical, 6)
+                        .glassEffect(.regular.tint(accent.opacity(0.3)), in: .capsule)
+                }
                 GlassEffectContainer(spacing: 12) {
                     VStack(spacing: 12) {
-                        Button(action: onRematch) { Label("Rematch", systemImage: "arrow.counterclockwise").frame(maxWidth: .infinity) }
+                        Button(action: onPrimary) { Label(primaryLabel, systemImage: primaryIcon).frame(maxWidth: .infinity) }
                             .buttonStyle(.glassProminent).tint(accent)
                         Button(action: onViewBoard) { Label("View board", systemImage: "cube").frame(maxWidth: .infinity) }
                             .buttonStyle(.glass)

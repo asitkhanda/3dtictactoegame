@@ -20,6 +20,16 @@ Pick an iPhone or iPad simulator and run. Local play (vs AI and 2 player) works
 offline. Debug builds show a board-size picker on the landing screen, standing in
 for the web's Konami-code secret sizes.
 
+## Previewing online screens
+Debug builds can open any online screen against a fake server, with no account or
+second player: launch with `-previewOnline <scenario>` (`waiting`, `active`,
+`theirturn`, `disconnected`, `win`, `loss`, `forfeit`, `abandoned`). The same fake
+backs the unit tests in `TwistedTacTests`.
+
+```bash
+xcrun simctl launch booted com.twistedtac.TwistedTac -previewOnline disconnected
+```
+
 ## Sign in with Apple
 The app signs in natively with `AuthenticationServices` and exchanges Apple's
 identity token with Supabase (`signInWithIdToken`). One-time setup:

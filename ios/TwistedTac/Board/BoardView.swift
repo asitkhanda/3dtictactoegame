@@ -4,8 +4,8 @@ import TwistedTacKit
 
 /// The 3D board. Renders `model` through a RealityKit scene and turns taps on
 /// tiles into moves. Drag orbits, pinch zooms.
-struct BoardView: View {
-    let model: LocalGameModel
+struct BoardView<Game: BoardGameSource>: View {
+    let model: Game
     let viewport: BoardViewport
 
     @State private var controller: BoardSceneController?

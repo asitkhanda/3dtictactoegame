@@ -26,13 +26,13 @@ struct GameView: View {
 
             if showGameOver, let outcome = model.outcome {
                 GameOverOverlay(
-                    outcome: outcome,
-                    mode: model.mode,
-                    boardSize: model.config.size,
-                    isFlat: !model.config.is3D,
-                    onRematch: { rematch() },
-                    onMenu: { dismiss() },
-                    onViewBoard: { showGameOver = false }
+                    title: overlayTitle(outcome),
+                    subtitle: overlaySubtitle(outcome),
+                    accent: overlayAccent(outcome),
+                    primaryLabel: "Rematch",
+                    onPrimary: { rematch() },
+                    onViewBoard: { showGameOver = false },
+                    onMenu: { dismiss() }
                 )
                 .transition(.opacity)
             }
@@ -131,6 +131,31 @@ struct GameView: View {
         case nil:
             if model.mode == .vsAI { return model.isXNext ? "Your turn." : "AI is thinking." }
             return "Player \(model.isXNext ? "X" : "O")'s turn."
+        }
+    }
+
+    private func overlayTitle(_ outcome: GameOutcome) -> String {
+        switch outcome {
+        case .draw: "STALEMATE"
+        case let .win(player):
+            model.mode == .vsAI ? (player == .x ? "YOU WIN" : "AI WINS") : "\(player.rawValue) TAKES IT"
+        }
+    }
+
+    private func overlaySubtitle(_ outcome: GameOutcome) -> String {
+        switch outcome {
+        case .draw: "The cube holds. Nobody cracked it."
+        case .win:
+            if model.config.size == 1 { "The void is claimed." }
+            else if !model.config.is3D { "Line complete." }
+            else { "The stack is yours." }
+        }
+    }
+
+    private func overlayAccent(_ outcome: GameOutcome) -> Color {
+        switch outcome {
+        case .draw: Theme.playerO
+        case let .win(player): model.mode == .twoPlayer ? Theme.color(for: player) : (player == .x ? Theme.playerX : Theme.playerO)
         }
     }
 

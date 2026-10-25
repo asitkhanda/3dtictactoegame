@@ -12,6 +12,11 @@ enum Destination: Hashable {
     case game(GameRoute)
     case leaderboard
     case profile
+    case lobby(size: Int, viewMode: ViewMode)
+    case online(MatchRow)
+    #if DEBUG
+    case debugOnline(String)
+    #endif
 }
 
 struct RootView: View {
@@ -33,6 +38,20 @@ struct RootView: View {
                         LeaderboardView()
                     case .profile:
                         ProfileView()
+                    case let .lobby(size, viewMode):
+                        OnlineLobbyView(size: size, viewMode: viewMode) { path.append($0) }
+                    #if DEBUG
+                    case let .debugOnline(name):
+                        DebugOnlinePreview.view(for: name)
+                            .toolbar(.hidden, for: .navigationBar)
+                    #endif
+                    case let .online(match):
+                        if let userID = auth.userID, let model = OnlineMatchModel(match: match, userID: userID) {
+                            OnlineGameView(model: model)
+                                .toolbar(.hidden, for: .navigationBar)
+                        } else {
+                            ContentUnavailableView("Can't open this match", systemImage: "exclamationmark.triangle")
+                        }
                     }
                 }
         }
@@ -43,6 +62,11 @@ struct RootView: View {
         .onAppear {
             ArcadeFeedback.shared.settings = settings
             auth.start()
+            #if DEBUG
+            if let preview = DebugOnlinePreview.scenario {
+                path = [.debugOnline(preview)]
+            }
+            #endif
         }
     }
 }

@@ -41,6 +41,24 @@ public struct MatchRow: Codable, Sendable, Hashable, Identifiable {
     public var updatedAt: String
     public var revision: Int
 
+    public init(
+        id: String, roomCode: String, hostId: String, guestId: String?, status: MatchStatus,
+        config: MatchConfig, board: Board, layerWinners: [LayerResult], isXNext: Bool,
+        hostPlaysX: Bool, winner: Player?, draw: Bool, currentTurnUserId: String?,
+        hostDisconnectedAt: String?, guestDisconnectedAt: String?,
+        hostLastSeenAt: String?, guestLastSeenAt: String?, abandonReason: String?,
+        createdAt: String, updatedAt: String, revision: Int
+    ) {
+        self.id = id; self.roomCode = roomCode; self.hostId = hostId; self.guestId = guestId
+        self.status = status; self.config = config; self.board = board; self.layerWinners = layerWinners
+        self.isXNext = isXNext; self.hostPlaysX = hostPlaysX; self.winner = winner; self.draw = draw
+        self.currentTurnUserId = currentTurnUserId
+        self.hostDisconnectedAt = hostDisconnectedAt; self.guestDisconnectedAt = guestDisconnectedAt
+        self.hostLastSeenAt = hostLastSeenAt; self.guestLastSeenAt = guestLastSeenAt
+        self.abandonReason = abandonReason; self.createdAt = createdAt; self.updatedAt = updatedAt
+        self.revision = revision
+    }
+
     enum CodingKeys: String, CodingKey {
         case id, status, config, board, winner, draw, revision
         case roomCode = "room_code"

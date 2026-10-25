@@ -35,12 +35,22 @@ struct LandingView: View {
                     VStack(spacing: 14) {
                         menuButton("Play vs AI", systemImage: "cpu", mode: .vsAI, prominent: true)
                         menuButton("2 Player", systemImage: "person.2.fill", mode: .twoPlayer, prominent: false)
-                        Button {} label: {
-                            Label("Online (coming soon)", systemImage: "globe")
-                                .frame(maxWidth: .infinity)
+                        if auth.isConfigured {
+                            Button {
+                                ArcadeFeedback.shared.play(.tap)
+                                if auth.phase == .ready {
+                                    onNavigate(.lobby(size: boardSize, viewMode: boardViewMode))
+                                } else {
+                                    showSignIn = true
+                                }
+                            } label: {
+                                Label(auth.phase == .ready ? "Play online" : "Sign in to play online", systemImage: "globe")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.glassProminent)
+                            .tint(Theme.playerO.opacity(0.6))
                         }
-                        .buttonStyle(.glass)
-                        .disabled(true)
                         if auth.isConfigured {
                             Button { onNavigate(.leaderboard) } label: {
                                 Label("Leaderboard", systemImage: "trophy")

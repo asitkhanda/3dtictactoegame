@@ -57,12 +57,28 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.twistedtac.TwistedTac
         PRODUCT_NAME: Twisted Tac
+        PRODUCT_MODULE_NAME: TwistedTac
         TARGETED_DEVICE_FAMILY: "1,2"
         SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
         SWIFT_APPROACHABLE_CONCURRENCY: YES
         GENERATE_INFOPLIST_FILE: NO
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_STYLE: Automatic
+  TwistedTacTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - TwistedTacTests
+    dependencies:
+      - target: TwistedTac
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.twistedtac.TwistedTacTests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Twisted Tac.app/Twisted Tac"
+        BUNDLE_LOADER: "$(TEST_HOST)"
 schemes:
   TwistedTac:
     build:
@@ -72,3 +88,5 @@ schemes:
       config: Debug
     test:
       config: Debug
+      targets:
+        - TwistedTacTests
