@@ -63,7 +63,10 @@ struct RootView: View {
             UsernameOnboardingSheet()
         }
         .sheet(isPresented: $showInviteSignIn) { SignInSheet() }
-        .onOpenURL { links.handle($0) }
+        .onOpenURL { url in
+            // Invite links start a join; the Google sign-in return finishes a login.
+            if !links.handle(url) { Task { await auth.handleCallback(url) } }
+        }
         .task(id: InviteState(code: links.pendingRoomCode, phase: auth.phase)) { await continueInvite() }
         .alert("Couldn't join that room", isPresented: .constant(links.errorMessage != nil)) {
             Button("OK") { links.errorMessage = nil }

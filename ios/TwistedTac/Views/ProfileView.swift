@@ -38,7 +38,18 @@ struct ProfileView: View {
             isPresented: $confirmDelete,
             titleVisibility: .visible
         ) {
-            Button("Continue", role: .destructive) { reauthenticate = true }
+            // Apple asks for a fresh Apple sign-in to revoke the app's access.
+            // Accounts that never used Apple are deleted straight away.
+            Button(auth.hasAppleIdentity ? "Continue" : "Delete account", role: .destructive) {
+                if auth.hasAppleIdentity {
+                    reauthenticate = true
+                } else {
+                    Task {
+                        deleteError = await auth.deleteAccount(authorizationCode: nil)
+                        if deleteError == nil { dismiss() }
+                    }
+                }
+            }
             Button("Keep my account", role: .cancel) {}
         } message: {
             Text("This permanently deletes your profile, stats and match history. It can't be undone.")
