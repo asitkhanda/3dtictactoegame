@@ -6,9 +6,10 @@
 -- and is credited the win. Then the auth user is deleted, which cascades to the
 -- profile, game results and the user's hosted matches (see 001_live_services).
 --
--- Note: Sign in with Apple also asks apps to revoke the user's Apple token on
--- deletion. That needs Apple's REST API and a signing key, so it belongs in an
--- edge function and is not done here.
+-- Sign in with Apple also requires revoking the user's Apple token on deletion.
+-- That needs Apple's REST API and a signing key, so the delete-account edge
+-- function does it and then calls this. Applied to production as
+-- "delete_my_account" (the live migration history uses its own version numbers).
 
 create or replace function public.delete_my_account()
 returns void
