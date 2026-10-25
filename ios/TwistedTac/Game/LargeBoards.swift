@@ -18,7 +18,9 @@ final class LargeBoards {
 
     init() {
         #if DEBUG
-        isUnlocked = true   // developers can always try every size
+        // Developers can always try every size; `-simulateRelease YES` hides the
+        // picker so screenshots match what players see.
+        isUnlocked = !UserDefaults.standard.bool(forKey: "simulateRelease")
         #else
         isUnlocked = false
         #endif

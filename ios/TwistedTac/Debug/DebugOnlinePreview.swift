@@ -3,7 +3,7 @@ import TwistedTacKit
 
 #if DEBUG
 /// `-previewOnline <scenario>` opens an online screen backed by a fake server:
-/// waiting, active, theirturn, disconnected, win, loss, draw, forfeit, abandoned.
+/// waiting, active, midgame, theirturn, disconnected, win, loss, forfeit, abandoned.
 enum DebugOnlinePreview {
     static var scenario: String? {
         let args = ProcessInfo.processInfo.arguments
@@ -33,6 +33,9 @@ enum DebugOnlinePreview {
         switch name {
         case "waiting":
             row = .sample(status: .waiting, host: me, guest: nil)
+        case "midgame":
+            // X has claimed layer 1; O is building on layer 2. Used for store screenshots.
+            play([0, 9, 1, 10, 2, 13, 11, 4, 22, 17, 5, 14])
         case "theirturn":
             play([13, 4, 22])
         case "disconnected":
