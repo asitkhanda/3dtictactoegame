@@ -9,7 +9,6 @@ import {
   generateCrossLayerLines,
   generateLayerLines,
   hasLegalMoves,
-  isDraw,
 } from './gameLogic';
 
 const config3D = createGameConfig(3, '3D');
@@ -146,7 +145,7 @@ describe('draw detection', () => {
     layout.forEach((mark, i) => {
       board[i] = mark;
     });
-    expect(isDraw(config2D, board)).toBe(true);
+    expect(hasLegalMoves(config2D, board, createInitialState(config2D).layerWinners)).toBe(false);
     expect(checkBoardWinner(config2D, board).winner).toBeNull();
   });
 
@@ -173,7 +172,6 @@ describe('draw detection', () => {
     layerWinners[2] = { winner: 'O', line: [18, 19, 20] };
 
     expect(hasLegalMoves(config3D, board, layerWinners)).toBe(true);
-    expect(isDraw(config3D, board)).toBe(false);
 
     const result = applyMove(config3D, board, layerWinners, 17, true)!;
     expect(result.draw).toBe(true);
@@ -201,7 +199,6 @@ describe('draw detection', () => {
     layerWinners[2] = { winner: 'O', line: [18, 19, 20] };
 
     expect(hasLegalMoves(config3D, board, layerWinners)).toBe(false);
-    expect(isDraw(config3D, board)).toBe(false);
   });
 });
 

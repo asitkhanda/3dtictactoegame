@@ -19,7 +19,6 @@ export {
   checkLayerWinner,
   checkBoardWinner,
   isLayerFull,
-  isDraw,
   hasLegalMoves,
   applyMove,
   getComputerMove,

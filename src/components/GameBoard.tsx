@@ -221,7 +221,6 @@ export function GameBoard() {
     const timer = setTimeout(() => {
       void requestMove(config, board, layerWinners, 'O').then((moveIndex) => {
         if (moveIndex !== -1) makeMove(moveIndex);
-        else if (!hasLegalMoves(config, board, layerWinners)) setDraw(true);
       }).catch(() => undefined);
     }, delay);
 
