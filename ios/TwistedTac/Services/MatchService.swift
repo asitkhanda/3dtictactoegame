@@ -98,9 +98,7 @@ enum MatchService {
         return rows?.first?.username
     }
 
-    static func inviteLink(code: String) -> URL {
-        URL(string: "https://twistedtac.com/join/\(code)")!
-    }
+    static func inviteLink(code: String) -> URL { InviteLink.url(for: code) }
 
     private nonisolated struct CreateParams: Encodable { let p_board_size: Int; let p_view_mode: String }
     private nonisolated struct PresenceParams: Encodable { let p_match_id: String; let p_connected: Bool }

@@ -76,6 +76,8 @@ struct SecretCodeTests {
 
     @Test("builds the shareable link")
     func build() {
-        #expect(InviteLink.url(for: "k7m2qx").absoluteString == "https://twistedtac.com/join/K7M2QX")
+        #expect(InviteLink.url(for: "k7m2qx").absoluteString == "https://www.twistedtac.com/join/K7M2QX")
+        // What we share must be a link we recognise.
+        #expect(InviteLink.roomCode(from: InviteLink.url(for: "k7m2qx")) == "K7M2QX")
     }
 }

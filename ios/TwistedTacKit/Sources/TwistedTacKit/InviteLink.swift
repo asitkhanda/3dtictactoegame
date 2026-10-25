@@ -1,10 +1,15 @@
 import Foundation
 
 /// Room invite links, as shared from the waiting room:
-/// `https://twistedtac.com/join/ABC123`, plus a `twistedtac://join/ABC123`
+/// `https://www.twistedtac.com/join/ABC123`, plus a `twistedtac://join/ABC123`
 /// scheme used for development and as a fallback.
+///
+/// Links are shared on `www` because the apex domain redirects there, and Apple
+/// only verifies the app's claim on a host that serves the association file
+/// directly, with no redirect. The apex is still accepted when received.
 public enum InviteLink {
-    public static let hosts: Set<String> = ["twistedtac.com", "www.twistedtac.com"]
+    public static let canonicalHost = "www.twistedtac.com"
+    public static let hosts: Set<String> = ["twistedtac.com", canonicalHost]
     public static let scheme = "twistedtac"
 
     /// The room code in `url`, upper-cased, or nil if it isn't an invite.
@@ -29,6 +34,6 @@ public enum InviteLink {
     }
 
     public static func url(for code: String) -> URL {
-        URL(string: "https://twistedtac.com/join/\(code.uppercased())")!
+        URL(string: "https://\(canonicalHost)/join/\(code.uppercased())")!
     }
 }
