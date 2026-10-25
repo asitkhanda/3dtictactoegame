@@ -8,20 +8,41 @@ struct GameRoute: Hashable {
     let viewMode: ViewMode
 }
 
+enum Destination: Hashable {
+    case game(GameRoute)
+    case leaderboard
+    case profile
+}
+
 struct RootView: View {
     @Environment(GameSettings.self) private var settings
-    @State private var path: [GameRoute] = []
+    @Environment(AuthManager.self) private var auth
+    @State private var path: [Destination] = []
 
     var body: some View {
         NavigationStack(path: $path) {
-            LandingView { route in path.append(route) }
-                .navigationDestination(for: GameRoute.self) { route in
-                    if let config = GameRulesConfig(size: route.size, viewMode: route.viewMode) {
-                        GameView(model: LocalGameModel(config: config, mode: route.mode))
-                            .toolbar(.hidden, for: .navigationBar)
+            LandingView { path.append($0) }
+                .navigationDestination(for: Destination.self) { destination in
+                    switch destination {
+                    case let .game(route):
+                        if let config = GameRulesConfig(size: route.size, viewMode: route.viewMode) {
+                            GameView(model: LocalGameModel(config: config, mode: route.mode))
+                                .toolbar(.hidden, for: .navigationBar)
+                        }
+                    case .leaderboard:
+                        LeaderboardView()
+                    case .profile:
+                        ProfileView()
                     }
                 }
         }
-        .onAppear { ArcadeFeedback.shared.settings = settings }
+        // A new account can't do anything online until it has a username.
+        .sheet(isPresented: .constant(auth.phase == .needsUsername)) {
+            UsernameOnboardingSheet()
+        }
+        .onAppear {
+            ArcadeFeedback.shared.settings = settings
+            auth.start()
+        }
     }
 }

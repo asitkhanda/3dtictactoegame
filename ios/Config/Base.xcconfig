@@ -1,0 +1,3 @@
+// Optional local overrides (gitignored). Without it the app still runs local
+// games; online features, sign-in and the leaderboard stay hidden.
+#include? "Supabase.local.xcconfig"

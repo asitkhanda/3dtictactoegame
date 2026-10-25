@@ -2,9 +2,11 @@ import SwiftUI
 import TwistedTacKit
 
 struct LandingView: View {
-    let onStart: (GameRoute) -> Void
+    let onNavigate: (Destination) -> Void
 
+    @Environment(AuthManager.self) private var auth
     @State private var showRules = false
+    @State private var showSignIn = false
     #if DEBUG
     @State private var debugSize = 3
     @State private var debugFlat = false
@@ -39,6 +41,13 @@ struct LandingView: View {
                         }
                         .buttonStyle(.glass)
                         .disabled(true)
+                        if auth.isConfigured {
+                            Button { onNavigate(.leaderboard) } label: {
+                                Label("Leaderboard", systemImage: "trophy")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.glass)
+                        }
                         Button { showRules = true } label: {
                             Label("How to play", systemImage: "questionmark.circle")
                                 .frame(maxWidth: .infinity)
@@ -61,14 +70,34 @@ struct LandingView: View {
                     .padding(.bottom, 12)
             }
         }
+        .overlay(alignment: .topTrailing) { accountButton }
         .sheet(isPresented: $showRules) { RulesSheet() }
+        .sheet(isPresented: $showSignIn) { SignInSheet() }
+    }
+
+    @ViewBuilder
+    private var accountButton: some View {
+        if auth.isConfigured {
+            Button {
+                if auth.phase == .ready { onNavigate(.profile) } else { showSignIn = true }
+            } label: {
+                if let profile = auth.profile, auth.phase == .ready {
+                    AvatarView(urlString: profile.avatarURL, name: profile.username ?? "?", size: 34)
+                } else {
+                    Image(systemName: "person.crop.circle").font(.title3)
+                }
+            }
+            .buttonStyle(.glass)
+            .padding(.trailing, 16).padding(.top, 8)
+            .accessibilityLabel(auth.phase == .ready ? "Profile" : "Sign in")
+        }
     }
 
     private func menuButton(_ title: String, systemImage: String, mode: LocalMode, prominent: Bool) -> some View {
         let route = { GameRoute(mode: mode, size: boardSize, viewMode: boardViewMode) }
         return Button {
             ArcadeFeedback.shared.play(.tap)
-            onStart(route())
+            onNavigate(.game(route()))
         } label: {
             Label(title, systemImage: systemImage)
                 .font(.headline)
