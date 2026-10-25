@@ -41,6 +41,13 @@ backs the unit tests in `TwistedTacTests`.
 xcrun simctl launch booted com.twistedtac.TwistedTac -previewOnline disconnected
 ```
 
+## Sign in with Google
+Google uses Supabase's browser OAuth flow (`ASWebAuthenticationSession`), so it reuses
+the website's Google setup and existing web accounts carry over. One-time setup:
+add `twistedtac://login-callback` to Supabase → Authentication → URL Configuration →
+Redirect URLs. Sign in with Apple stays first and equally prominent, as App Store
+guideline 4.8 requires when another login is offered.
+
 ## Sign in with Apple
 The app signs in natively with `AuthenticationServices` and exchanges Apple's
 identity token with Supabase (`signInWithIdToken`). One-time setup:

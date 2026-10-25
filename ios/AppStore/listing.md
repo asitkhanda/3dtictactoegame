@@ -60,7 +60,7 @@ third-party advertising, no analytics SDKs.
 
 | Data type | Collected | Linked | Tracking | Purpose |
 |---|---|---|---|---|
-| Email address (Sign in with Apple, may be a private relay address) | Yes | Yes | No | App Functionality |
+| Email address (Sign in with Apple, may be a private relay address; or Google) | Yes | Yes | No | App Functionality |
 | Name (optional, from Apple) | Yes | Yes | No | App Functionality |
 | User ID | Yes | Yes | No | App Functionality |
 | Gameplay content (matches, scores) | Yes | Yes | No | App Functionality |
@@ -72,7 +72,7 @@ Uses only standard HTTPS. `ITSAppUsesNonExemptEncryption = NO` is set in the app
 per-build prompt.
 
 ## App Review notes
-Sign in with Apple is the only account method, so reviewers can use their own Apple ID.
+The app offers Sign in with Apple and Continue with Google (Google exists so players from our website keep their stats). Reviewers can use their own Apple ID; there is no username/password.
 Local play (VS AI and 2 Player) needs no account. Online play needs a second player: review
 can create a room on one device and join from another, or from twistedtac.com.
 Account deletion: Profile → Delete account (re-confirms with Apple, then deletes the

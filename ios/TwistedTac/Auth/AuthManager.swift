@@ -20,11 +20,19 @@ final class AuthManager {
     private(set) var phase: Phase = .loading
     private(set) var profile: Profile?
     private(set) var userID: String?
+    /// Which providers this account has signed in with ("apple", "google", ...).
+    private(set) var identityProviders: Set<String> = []
     var errorMessage: String?
     private(set) var isWorking = false
 
     var isConfigured: Bool { Backend.isConfigured }
     var isSignedIn: Bool { userID != nil }
+    /// Apple asks apps to revoke Sign in with Apple access when an account is deleted.
+    var hasAppleIdentity: Bool { identityProviders.contains("apple") }
+
+    /// Where the browser sends the player back to the app after Google sign-in.
+    /// Must be on Supabase's redirect allow-list.
+    static let oauthCallback = URL(string: "twistedtac://login-callback")!
 
     private var rawNonce: String?
     private var pendingFullName: String?
@@ -45,6 +53,7 @@ final class AuthManager {
                 switch event {
                 case .initialSession, .signedIn, .tokenRefreshed, .userUpdated:
                     if let user = session?.user, !(session?.isExpired ?? true) {
+                        self.identityProviders = Set((user.identities ?? []).map(\.provider))
                         await self.didSignIn(userID: user.id.uuidString.lowercased())
                     } else {
                         self.didSignOut()
@@ -66,6 +75,7 @@ final class AuthManager {
 
     private func didSignOut() {
         userID = nil
+        identityProviders = []
         profile = nil
         phase = .signedOut
     }
@@ -115,6 +125,34 @@ final class AuthManager {
             }
             rawNonce = nil
         }
+    }
+
+    /// Signs in with Google through the system browser sheet. Uses the same
+    /// Google setup as the website, so existing web accounts and their stats
+    /// carry over.
+    func signInWithGoogle() async {
+        guard let client = Backend.client else { return }
+        errorMessage = nil
+        isWorking = true
+        defer { isWorking = false }
+        do {
+            try await client.auth.signInWithOAuth(
+                provider: .google,
+                redirectTo: Self.oauthCallback,
+                queryParams: [(name: "prompt", value: "select_account")]
+            )
+        } catch {
+            // Closing the sheet isn't an error worth showing.
+            if (error as? ASWebAuthenticationSessionError)?.code != .canceledLogin {
+                errorMessage = "Couldn't sign you in with Google. Please try again."
+            }
+        }
+    }
+
+    /// Finishes a sign-in whose redirect reached the app as a plain URL.
+    func handleCallback(_ url: URL) async {
+        guard url.scheme == Self.oauthCallback.scheme, url.host() == Self.oauthCallback.host() else { return }
+        _ = try? await Backend.client?.auth.session(from: url)
     }
 
     func signOut() async {
