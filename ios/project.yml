@@ -36,6 +36,10 @@ targets:
         SupabasePublishableKey: $(SUPABASE_PUBLISHABLE_KEY)
         CFBundleDisplayName: Twisted Tac
         UILaunchScreen: {}
+        CFBundleURLTypes:
+          - CFBundleURLName: com.twistedtac.invite
+            CFBundleURLSchemes:
+              - twistedtac
         UIApplicationSupportsIndirectInputEvents: true
         UIUserInterfaceStyle: Dark
         LSApplicationCategoryType: public.app-category.board-games
@@ -53,6 +57,9 @@ targets:
       properties:
         com.apple.developer.applesignin:
           - Default
+        com.apple.developer.associated-domains:
+          - applinks:twistedtac.com
+          - applinks:www.twistedtac.com
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.twistedtac.TwistedTac

@@ -6,5 +6,10 @@
 	<array>
 		<string>Default</string>
 	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:twistedtac.com</string>
+		<string>applinks:www.twistedtac.com</string>
+	</array>
 </dict>
 </plist>

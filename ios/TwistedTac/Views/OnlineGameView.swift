@@ -132,8 +132,8 @@ struct OnlineGameView: View {
 
     private var gameScreen: some View {
         VStack(spacing: 10) {
-            topBar
-            banner
+            topBar.readableWidth()
+            banner.readableWidth()
             ScoreboardView(
                 xLabel: model.xName, oLabel: model.oName,
                 xScore: model.state.layerWinners.filter { $0.winner == .x }.count,
@@ -143,14 +143,16 @@ struct OnlineGameView: View {
                 oActive: model.match.winner == .o || (model.isPlaying && !model.match.isXNext),
                 thinkingSide: model.isPlaying && !model.isMyTurn ? model.mySymbol.opponent : nil
             )
+            .readableWidth()
             .padding(.horizontal, 14)
-            BoardView(model: model, viewport: viewport)
+            BoardContainer(model: model, viewport: viewport)
                 .overlay(alignment: .top) { layerBanner }
             Text(statusText)
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(Theme.foreground)
                 .accessibilityAddTraits(.updatesFrequently)
             CameraControls(viewport: viewport, is3D: model.config.is3D)
+                .readableWidth()
                 .padding(.horizontal, 14).padding(.bottom, 6)
         }
         .overlay {

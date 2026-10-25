@@ -3,6 +3,7 @@ import TwistedTacKit
 
 /// X vs O plate showing whose turn it is and, on 3D boards, layers claimed.
 struct ScoreboardView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let xLabel: String
     let oLabel: String
     let xScore: Int
@@ -50,7 +51,7 @@ struct ScoreboardView: View {
         .padding(.vertical, 10)
         .glassEffect(.regular.tint(color.opacity(active ? 0.45 : 0.12)), in: .rect(cornerRadius: 18))
         .scaleEffect(active ? 1.03 : 1)
-        .animation(.spring(duration: 0.3), value: active)
+        .animation(reduceMotion ? nil : .spring(duration: 0.3), value: active)
     }
 }
 
@@ -80,13 +81,14 @@ struct MarkGlyph: View {
 struct ThinkingDots: View {
     let color: Color
     @State private var phase = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: 3) {
             ForEach(0..<3, id: \.self) { i in
                 Circle().fill(color).frame(width: 4, height: 4)
                     .opacity(phase ? 1 : 0.25)
-                    .animation(.easeInOut(duration: 0.6).repeatForever().delay(Double(i) * 0.18), value: phase)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.6).repeatForever().delay(Double(i) * 0.18), value: phase)
             }
         }
         .onAppear { phase = true }

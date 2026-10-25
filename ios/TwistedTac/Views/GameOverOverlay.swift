@@ -16,6 +16,7 @@ struct GameOverOverlay: View {
     let onMenu: () -> Void
 
     @State private var shown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
@@ -51,10 +52,10 @@ struct GameOverOverlay: View {
             .padding(32)
             .glassEffect(.regular, in: .rect(cornerRadius: 28))
             .padding(24)
-            .scaleEffect(shown ? 1 : 0.8)
+            .scaleEffect(shown || reduceMotion ? 1 : 0.8)
             .opacity(shown ? 1 : 0)
         }
-        .onAppear { withAnimation(.spring(duration: 0.45, bounce: 0.3)) { shown = true } }
+        .onAppear { withAnimation(reduceMotion ? nil : .spring(duration: 0.45, bounce: 0.3)) { shown = true } }
         .accessibilityAddTraits(.isModal)
     }
 }

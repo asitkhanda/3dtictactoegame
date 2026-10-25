@@ -5,12 +5,10 @@ struct LandingView: View {
     let onNavigate: (Destination) -> Void
 
     @Environment(AuthManager.self) private var auth
+    @Environment(SecretSizes.self) private var secrets
     @State private var showRules = false
     @State private var showSignIn = false
-    #if DEBUG
-    @State private var debugSize = 3
-    @State private var debugFlat = false
-    #endif
+    @State private var showSecretCode = false
 
     var body: some View {
         ZStack {
@@ -24,6 +22,11 @@ struct LandingView: View {
                         .foregroundStyle(Theme.foreground)
                         .minimumScaleFactor(0.6)
                         .lineLimit(1)
+                        .onLongPressGesture(minimumDuration: 0.9) {
+                            secrets.resetCode()
+                            showSecretCode = true
+                        }
+                        .accessibilityAddTraits(.isHeader)
                     Text("Stack layers. Strike through depth. Win the cube.")
                         .font(.callout)
                         .foregroundStyle(Theme.muted)
@@ -69,9 +72,7 @@ struct LandingView: View {
                 .frame(maxWidth: 420)
                 .padding(.horizontal, 28)
 
-                #if DEBUG
-                debugPicker
-                #endif
+                if secrets.unlocked { sizePicker }
 
                 Spacer()
                 Text("Local games are casual. Ranked play is online only.")
@@ -81,6 +82,16 @@ struct LandingView: View {
             }
         }
         .overlay(alignment: .topTrailing) { accountButton }
+        .overlay(alignment: .top) { unlockBanner }
+        // Swiping ↑ ↑ ↓ ↓ ← → ← → anywhere on the menu feeds the secret code.
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 40).onEnded { value in
+                if let step = konamiSwipeStep(dx: value.translation.width, dy: value.translation.height) {
+                    secrets.enter(step)
+                }
+            }
+        )
+        .sheet(isPresented: $showSecretCode) { SecretCodeSheet() }
         .sheet(isPresented: $showRules) { RulesSheet() }
         .sheet(isPresented: $showSignIn) { SignInSheet() }
     }
@@ -117,30 +128,30 @@ struct LandingView: View {
         .tint(prominent ? Theme.playerX : Theme.playerO.opacity(0.6))
     }
 
-    private var boardSize: Int {
-        #if DEBUG
-        debugSize
-        #else
-        3
-        #endif
+    private var boardSize: Int { secrets.effectiveSize }
+    private var boardViewMode: ViewMode { secrets.effectiveViewMode }
+
+    @ViewBuilder
+    private var unlockBanner: some View {
+        if secrets.justUnlocked {
+            Label("Secret boards unlocked — 1×1 through 8×8", systemImage: "sparkles")
+                .font(.subheadline.weight(.semibold))
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .glassEffect(.regular.tint(Theme.playerO.opacity(0.4)), in: .capsule)
+                .padding(.top, 60)
+                .transition(.scale.combined(with: .opacity))
+        }
     }
 
-    private var boardViewMode: ViewMode {
-        #if DEBUG
-        debugFlat ? .flat : .cube
-        #else
-        .cube
-        #endif
-    }
-
-    #if DEBUG
-    /// Stands in for the web's Konami-code secret board sizes until that is ported.
-    private var debugPicker: some View {
-        VStack(spacing: 6) {
-            Text("DEBUG · secret board sizes").font(.caption2).foregroundStyle(Theme.muted)
+    private var sizePicker: some View {
+        @Bindable var secrets = secrets
+        return VStack(spacing: 6) {
+            Text("SECRET BOARDS").font(.caption2.weight(.bold)).foregroundStyle(Theme.playerO)
             HStack {
-                Stepper("Size \(debugSize)", value: $debugSize, in: 1...8)
-                Toggle("2D", isOn: $debugFlat).labelsHidden()
+                Stepper(sizeLabel, value: $secrets.size, in: 1...8)
+                    .accessibilityLabel("Board size")
+                    .accessibilityValue(sizeLabel)
+                Toggle("2D", isOn: $secrets.isFlat).labelsHidden()
                 Text("2D").font(.caption)
             }
             .padding(.horizontal, 14).padding(.vertical, 8)
@@ -149,5 +160,8 @@ struct LandingView: View {
         .frame(maxWidth: 360)
         .padding(.horizontal, 28)
     }
-    #endif
+
+    private var sizeLabel: String {
+        secrets.size == 1 ? "The Void" : secrets.isFlat ? "\(secrets.size)×\(secrets.size) flat" : "\(secrets.size)×\(secrets.size)×\(secrets.size)"
+    }
 }

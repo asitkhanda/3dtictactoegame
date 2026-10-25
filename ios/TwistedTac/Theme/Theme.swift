@@ -20,3 +20,10 @@ enum Theme {
             .ignoresSafeArea()
     }
 }
+
+extension View {
+    /// Keeps HUD rows to a comfortable width on iPad while the board uses the whole screen.
+    func readableWidth(_ width: CGFloat = 560) -> some View {
+        frame(maxWidth: width)
+    }
+}

@@ -25,6 +25,7 @@ final class BoardSceneController {
     private var pieces: [Int: Entity] = [:]
     private var pieceMarks: [Int: Player] = [:]
     private var lastLayerWinners: [Player?]
+    var reduceMotion = false
     private var lastTranslucency: Double = -1
     private var lastAppliedOwners: [Player?] = []
 
@@ -79,11 +80,13 @@ final class BoardSceneController {
             * simd_quatf(angle: Float(yaw) * .pi / 180, axis: [0, 1, 0])
         pivot.orientation = config.is3D ? orientation : simd_quatf(angle: 0, axis: [0, 1, 0])
 
-        // Fit the board's bounding sphere inside the visible frustum.
-        let halfHeight = Self.cameraDistance * tan(40 * .pi / 360)
-        let halfWidth = halfHeight * Float(aspect)
-        // The 1x1 void is a single tile; keep it from swallowing the screen.
-        let fitRadius = min(halfHeight, halfWidth) * (config.size == 1 ? 0.5 : 0.88)
+        // Fit the board's bounding sphere inside the view. The nearest layer is
+        // closer to the camera and so drawn larger, so size the sphere for the
+        // distance to its near edge: R = k·t·D / (1 + k·t).
+        let halfAngle = tan(40 * Float.pi / 360)
+        let t = min(halfAngle, halfAngle * Float(aspect))
+        let k: Float = (config.size == 1 ? 0.5 : 1.0)
+        let fitRadius = k * t * Self.cameraDistance / (1 + k * t)
         let fit = fitRadius / layout.radius
         let scale = fit * Float(zoom)
         pivot.scale = SIMD3(repeating: scale)
@@ -239,6 +242,7 @@ final class BoardSceneController {
     }
 
     private func animateIn(_ piece: Entity) {
+        if reduceMotion { return }
         let target = piece.transform
         piece.transform.scale = SIMD3(repeating: 0.01)
         piece.move(to: target, relativeTo: piece.parent, duration: 0.2, timingFunction: .easeOut)

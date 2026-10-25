@@ -9,6 +9,7 @@ struct BoardView<Game: BoardGameSource>: View {
     let viewport: BoardViewport
 
     @State private var controller: BoardSceneController?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Everything the scene shows. RealityView's `update` closure doesn't
     /// reliably re-run for @Observable changes, so the view reads these in its
@@ -86,6 +87,7 @@ struct BoardView<Game: BoardGameSource>: View {
     }
 
     private func apply(to controller: BoardSceneController, aspect: CGFloat) {
+        controller.reduceMotion = reduceMotion
         controller.setPose(yaw: viewport.yaw, pitch: viewport.pitch, zoom: viewport.zoom, aspect: aspect)
         controller.sync(
             state: model.state,

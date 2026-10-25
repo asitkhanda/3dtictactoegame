@@ -11,6 +11,8 @@ final class BoardViewport {
     var zoom: Double = 1
     /// 0...1 — higher shows the layers more solidly.
     var translucency: Double = 0.5
+    /// Set from the Reduce Motion setting; presets then jump instead of easing.
+    var reduceMotion = false
     private(set) var activePreset: CameraPreset? = .home
 
     private var animation: Task<Void, Never>?
@@ -52,6 +54,10 @@ final class BoardViewport {
         animation?.cancel()
         activePreset = preset
         let target = preset.rotation
+        if reduceMotion {
+            yaw = target.yaw; pitch = target.pitch; zoom = 1
+            return
+        }
         let startYaw = yaw, startPitch = pitch, startZoom = zoom
         // Take the short way around the yaw circle.
         var deltaYaw = (target.yaw - startYaw).truncatingRemainder(dividingBy: 360)

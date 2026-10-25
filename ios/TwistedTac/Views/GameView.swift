@@ -13,13 +13,14 @@ struct GameView: View {
         ZStack {
             Theme.background
             VStack(spacing: 10) {
-                topBar
-                scoreboard
-                BoardView(model: model, viewport: viewport)
+                topBar.readableWidth()
+                scoreboard.readableWidth()
+                BoardContainer(model: model, viewport: viewport)
                     .id(model.gameID)
                     .overlay(alignment: .top) { layerBanner }
                 statusLine
                 CameraControls(viewport: viewport, is3D: model.config.is3D)
+                    .readableWidth()
                     .padding(.bottom, 6)
             }
             .padding(.horizontal, 14)

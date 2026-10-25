@@ -1,0 +1,12 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["D253L2SX65.com.twistedtac.TwistedTac"],
+        "components": [
+          { "/": "/join/*", "comment": "Room invite links open in the iOS app" }
+        ]
+      }
+    ]
+  }
+}

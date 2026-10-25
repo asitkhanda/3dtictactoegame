@@ -22,7 +22,10 @@ enum Destination: Hashable {
 struct RootView: View {
     @Environment(GameSettings.self) private var settings
     @Environment(AuthManager.self) private var auth
+    @Environment(DeepLinkRouter.self) private var links
     @State private var path: [Destination] = []
+    @State private var showInviteSignIn = false
+    @State private var joiningInvite = false
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -59,6 +62,14 @@ struct RootView: View {
         .sheet(isPresented: .constant(auth.phase == .needsUsername)) {
             UsernameOnboardingSheet()
         }
+        .sheet(isPresented: $showInviteSignIn) { SignInSheet() }
+        .onOpenURL { links.handle($0) }
+        .task(id: InviteState(code: links.pendingRoomCode, phase: auth.phase)) { await continueInvite() }
+        .alert("Couldn't join that room", isPresented: .constant(links.errorMessage != nil)) {
+            Button("OK") { links.errorMessage = nil }
+        } message: {
+            Text(links.errorMessage ?? "")
+        }
         .onAppear {
             ArcadeFeedback.shared.settings = settings
             auth.start()
@@ -67,6 +78,33 @@ struct RootView: View {
                 path = [.debugOnline(preview)]
             }
             #endif
+        }
+    }
+
+    private struct InviteState: Equatable {
+        let code: String?
+        let phase: AuthManager.Phase
+    }
+
+    /// An opened invite link waits for sign-in, then joins the room.
+    private func continueInvite() async {
+        guard let code = links.pendingRoomCode else { return }
+        switch auth.phase {
+        case .loading, .needsUsername:
+            return   // the username sheet is already up; resume once ready
+        case .signedOut:
+            showInviteSignIn = auth.isConfigured
+        case .ready:
+            guard !joiningInvite else { return }
+            joiningInvite = true
+            defer { joiningInvite = false }
+            links.consume()
+            do {
+                let match = try await MatchService.joinMatch(code: code)
+                path = [.online(match)]
+            } catch {
+                links.errorMessage = error.localizedDescription
+            }
         }
     }
 }
