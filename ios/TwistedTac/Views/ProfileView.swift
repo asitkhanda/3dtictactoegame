@@ -1,3 +1,4 @@
+import AuthenticationServices
 import SwiftUI
 import TwistedTacKit
 
@@ -6,6 +7,7 @@ struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var confirmDelete = false
+    @State private var reauthenticate = false
     @State private var deleteError: String?
 
     var body: some View {
@@ -36,15 +38,46 @@ struct ProfileView: View {
             isPresented: $confirmDelete,
             titleVisibility: .visible
         ) {
-            Button("Delete account", role: .destructive) {
-                Task {
-                    deleteError = await auth.deleteAccount()
-                    if deleteError == nil { dismiss() }
-                }
-            }
+            Button("Continue", role: .destructive) { reauthenticate = true }
             Button("Keep my account", role: .cancel) {}
         } message: {
             Text("This permanently deletes your profile, stats and match history. It can't be undone.")
+        }
+        // Apple asks apps to confirm with a fresh sign-in, which also lets the
+        // server revoke the app's access to the player's Apple Account.
+        .sheet(isPresented: $reauthenticate) {
+            VStack(spacing: 18) {
+                Image(systemName: "trash.circle.fill").font(.system(size: 48)).foregroundStyle(Theme.playerX)
+                Text("Confirm with Apple").font(.system(.title2, design: .rounded, weight: .black))
+                Text("Sign in once more to confirm. Your account and data will be deleted right away.")
+                    .font(.callout).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
+                SignInWithAppleButton(.continue) { request in
+                    request.requestedScopes = []
+                } onCompletion: { result in
+                    reauthenticate = false
+                    Task { await finishDeletion(result) }
+                }
+                .signInWithAppleButtonStyle(.white)
+                .frame(height: 54)
+                .clipShape(.capsule)
+                Button("Cancel", role: .cancel) { reauthenticate = false }
+            }
+            .padding(24)
+            .presentationDetents([.fraction(0.5)])
+        }
+    }
+
+    private func finishDeletion(_ result: Result<ASAuthorization, Error>) async {
+        switch result {
+        case let .success(authorization):
+            let code = (authorization.credential as? ASAuthorizationAppleIDCredential)?
+                .authorizationCode.flatMap { String(data: $0, encoding: .utf8) }
+            deleteError = await auth.deleteAccount(authorizationCode: code)
+            if deleteError == nil { dismiss() }
+        case let .failure(error):
+            if (error as? ASAuthorizationError)?.code != .canceled {
+                deleteError = "Couldn't confirm with Apple. Please try again."
+            }
         }
     }
 

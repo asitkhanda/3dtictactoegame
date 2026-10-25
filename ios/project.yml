@@ -36,6 +36,8 @@ targets:
         SupabasePublishableKey: $(SUPABASE_PUBLISHABLE_KEY)
         CFBundleDisplayName: Twisted Tac
         UILaunchScreen: {}
+        # Only standard HTTPS (exempt), so Apple's export-compliance question is pre-answered.
+        ITSAppUsesNonExemptEncryption: false
         CFBundleURLTypes:
           - CFBundleURLName: com.twistedtac.invite
             CFBundleURLSchemes:

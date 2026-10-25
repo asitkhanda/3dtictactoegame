@@ -179,13 +179,19 @@ final class AuthManager {
     }
 
     /// Permanently deletes the account and its data (App Store guideline 5.1.1(v)).
-    /// Returns an error message, or nil on success.
-    func deleteAccount() async -> String? {
+    ///
+    /// `authorizationCode` comes from a fresh Sign in with Apple the caller just
+    /// asked for; the server uses it to revoke the app's access in the player's
+    /// Apple Account. Returns an error message, or nil on success.
+    func deleteAccount(authorizationCode: String?) async -> String? {
         guard let client = Backend.client else { return "No backend connection." }
         isWorking = true
         defer { isWorking = false }
         do {
-            try await client.rpc("delete_my_account").execute()
+            try await client.functions.invoke(
+                "delete-account",
+                options: FunctionInvokeOptions(body: DeleteBody(authorizationCode: authorizationCode))
+            )
             try? await client.auth.signOut()
             didSignOut()
             return nil
@@ -193,6 +199,8 @@ final class AuthManager {
             return "Couldn't delete your account. Please try again, or contact support."
         }
     }
+
+    private nonisolated struct DeleteBody: Encodable { let authorizationCode: String? }
 
     // MARK: Nonce helpers
 
