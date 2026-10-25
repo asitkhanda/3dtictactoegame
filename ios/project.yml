@@ -1,0 +1,101 @@
+name: TwistedTac
+options:
+  bundleIdPrefix: com.twistedtac
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+configFiles:
+  Debug: Config/Base.xcconfig
+  Release: Config/Base.xcconfig
+packages:
+  TwistedTacKit:
+    path: TwistedTacKit
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    from: 2.55.0
+targets:
+  TwistedTac:
+    type: application
+    platform: iOS
+    sources:
+      - TwistedTac
+    dependencies:
+      - package: TwistedTacKit
+      - package: Supabase
+        product: Supabase
+    info:
+      path: TwistedTac/Info.plist
+      properties:
+        SupabaseURL: $(SUPABASE_URL)
+        SupabasePublishableKey: $(SUPABASE_PUBLISHABLE_KEY)
+        CFBundleDisplayName: Twisted Tac
+        UILaunchScreen: {}
+        # Only standard HTTPS (exempt), so Apple's export-compliance question is pre-answered.
+        ITSAppUsesNonExemptEncryption: false
+        CFBundleURLTypes:
+          - CFBundleURLName: com.twistedtac.invite
+            CFBundleURLSchemes:
+              - twistedtac
+        UIApplicationSupportsIndirectInputEvents: true
+        UIUserInterfaceStyle: Dark
+        LSApplicationCategoryType: public.app-category.board-games
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    entitlements:
+      path: TwistedTac/TwistedTac.entitlements
+      properties:
+        com.apple.developer.applesignin:
+          - Default
+        com.apple.developer.associated-domains:
+          - applinks:twistedtac.com
+          - applinks:www.twistedtac.com
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.twistedtac.TwistedTac
+        PRODUCT_NAME: Twisted Tac
+        PRODUCT_MODULE_NAME: TwistedTac
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+        GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CODE_SIGN_STYLE: Automatic
+  TwistedTacTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - TwistedTacTests
+    dependencies:
+      - target: TwistedTac
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.twistedtac.TwistedTacTests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Twisted Tac.app/Twisted Tac"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+schemes:
+  TwistedTac:
+    build:
+      targets:
+        TwistedTac: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - TwistedTacTests

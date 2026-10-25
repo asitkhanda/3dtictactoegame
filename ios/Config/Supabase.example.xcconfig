@@ -1,0 +1,7 @@
+// Copy to Supabase.local.xcconfig and fill in. Same values as the web app's
+// .env (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY). Use the publishable key
+// (sb_publishable_...), never a service-role key.
+//
+// In an xcconfig "//" starts a comment, so the URL's slashes are escaped with $().
+SUPABASE_URL = https:/$()/your-project.supabase.co
+SUPABASE_PUBLISHABLE_KEY = sb_publishable_your-key-here

@@ -1,0 +1,8 @@
+.build/
+.swiftpm/
+xcuserdata/
+DerivedData/
+*.xcuserstate
+TwistedTac.xcodeproj/
+Config/Supabase.local.xcconfig
+Config/Signing.local.xcconfig

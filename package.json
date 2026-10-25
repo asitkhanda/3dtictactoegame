@@ -40,6 +40,7 @@
             "build": "tsc --noEmit && vite build",
             "test": "vitest run",
             "typecheck": "tsc --noEmit",
-            "verify": "npm run typecheck && npm test && npm run build"
+            "verify": "npm run typecheck && npm test && npm run build",
+            "gen:parity": "vite-node scripts/gen-parity-vectors.ts"
       }
 }
