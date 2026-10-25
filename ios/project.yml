@@ -60,7 +60,7 @@ targets:
         com.apple.developer.applesignin:
           - Default
         com.apple.developer.associated-domains:
-          - applinks:twistedtac.com
+          # www only: the apex redirects here, and Apple needs the file with no redirect.
           - applinks:www.twistedtac.com
     settings:
       base:

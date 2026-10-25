@@ -23,7 +23,7 @@ for the web's Konami-code secret sizes.
 ## Secret boards, invite links, accessibility
 - **Secret boards (1×1 to 8×8):** swipe ↑ ↑ ↓ ↓ ← → ← → on the menu, or long-press the
   title for a tap-in pad (then B, A). The unlock is remembered.
-- **Invite links:** `https://twistedtac.com/join/CODE` opens the app via universal
+- **Invite links:** `https://www.twistedtac.com/join/CODE` opens the app via universal
   links (the `apple-app-site-association` file is served from `public/.well-known/`),
   and `twistedtac://join/CODE` works as a fallback. Test with
   `xcrun simctl openurl booted "twistedtac://join/K7M2QX"`.
