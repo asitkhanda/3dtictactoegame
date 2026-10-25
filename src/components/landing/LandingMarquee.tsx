@@ -4,7 +4,7 @@ const ITEMS = [
   'TWISTED TAC',
   '3D LINES',
   'LAYER WINS',
-  'SECRET BOARDS',
+  'NOW ON IOS · BETA',
   'STACK · STRIKE · WIN',
 ];
 

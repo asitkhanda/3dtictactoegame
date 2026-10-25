@@ -132,7 +132,7 @@ final class LocalGameModel {
         let snapshot = state
         aiTask?.cancel()
         aiTask = Task {
-            // A beat of "thinking", shorter on the big secret boards.
+            // A beat of "thinking", shorter on the big boards.
             try? await Task.sleep(for: .milliseconds(config.size >= 6 ? 400 : 750))
             if Task.isCancelled { return }
             let move = await Task.detached(priority: .userInitiated) {

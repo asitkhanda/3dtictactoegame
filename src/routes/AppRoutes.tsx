@@ -6,6 +6,7 @@ import { OnlineGamePage } from '../pages/OnlineGamePage';
 import { JoinMatchPage } from '../pages/JoinMatchPage';
 import { PrivacyPolicyPage } from '../pages/PrivacyPolicyPage';
 import { TermsOfServicePage } from '../pages/TermsOfServicePage';
+import { SupportPage } from '../pages/SupportPage';
 import { Seo } from '../components/Seo';
 
 export function AppRoutes() {
@@ -20,6 +21,7 @@ export function AppRoutes() {
         <Route path="/join/:code" element={<JoinMatchPage />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+        <Route path="/support" element={<SupportPage />} />
       </Routes>
     </>
   );

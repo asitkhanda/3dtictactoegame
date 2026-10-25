@@ -17,12 +17,11 @@ publishable key — the same values as the web app's `.env`. Without it the app
 still works for local play, and sign-in and the leaderboard stay hidden.
 
 Pick an iPhone or iPad simulator and run. Local play (vs AI and 2 player) works
-offline. Debug builds show a board-size picker on the landing screen, standing in
-for the web's Konami-code secret sizes.
+offline. Debug builds show a board-size picker on the landing screen. Release
+builds play the classic 3×3×3 only: the other sizes are reserved for a future paid,
+app-only feature (see `LargeBoards`).
 
-## Secret boards, invite links, accessibility
-- **Secret boards (1×1 to 8×8):** swipe ↑ ↑ ↓ ↓ ← → ← → on the menu, or long-press the
-  title for a tap-in pad (then B, A). The unlock is remembered.
+## Invite links and accessibility
 - **Invite links:** `https://www.twistedtac.com/join/CODE` opens the app via universal
   links (the `apple-app-site-association` file is served from `public/.well-known/`),
   and `twistedtac://join/CODE` works as a fallback. Test with

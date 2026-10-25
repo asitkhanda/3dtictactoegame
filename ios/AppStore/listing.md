@@ -11,9 +11,9 @@ Draft copy and answers for App Store Connect. Edit freely.
 | Primary category | Games → Board |
 | Secondary category | Games → Strategy |
 | Price | Free, no in-app purchases |
-| Support URL | https://twistedtac.com |
-| Privacy Policy URL | https://twistedtac.com/privacy-policy |
-| Marketing URL | https://twistedtac.com |
+| Support URL | https://www.twistedtac.com/support |
+| Privacy Policy URL | https://www.twistedtac.com/privacy-policy |
+| Marketing URL | https://www.twistedtac.com |
 | Copyright | © 2026 Asit Khanda |
 
 ## Promotional text (170)
@@ -35,7 +35,8 @@ BUILT FOR iPHONE AND iPAD
 • A real 3D board you can drag to orbit and pinch to zoom, with camera presets.
 • Liquid Glass interface, synthesized sound and haptics.
 • VoiceOver support with a layer-by-layer board, plus Reduce Motion.
-• Secret bigger boards, up to 8×8×8, for anyone who finds the code.
+
+Local games work offline and need no account. Sign in with Apple or Google only for online play and the leaderboard.
 
 Local games work offline. Sign in with Apple only for online play and the leaderboard.
 
@@ -84,7 +85,8 @@ account and revokes the app's Apple access).
 Suggested set: the 3D cube mid-game, the menu, a layer claim, online room code, leaderboard, win screen.
 
 ## Before submitting
-- [ ] Apply `supabase/migrations/011_delete_my_account.sql`
-- [ ] Deploy `supabase/functions/delete-account` and set its Apple secrets
-- [ ] Deploy the website so `/.well-known/apple-app-site-association` is live
-- [ ] Create the app record in App Store Connect with the bundle ID above
+- [x] Apply `supabase/migrations/011_delete_my_account.sql`
+- [x] Deploy `supabase/functions/delete-account` and set its Apple secrets
+- [x] Deploy the website so `/.well-known/apple-app-site-association` is live
+- [x] Create the app record in App Store Connect with the bundle ID above
+- [ ] Deploy the `/support` page (this branch) before pasting the Support URL

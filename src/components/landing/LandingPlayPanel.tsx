@@ -1,14 +1,11 @@
 import type { ReactNode } from 'react';
 import { Bot, Globe, Users, KeyRound, HelpCircle, ChevronRight } from 'lucide-react';
-import { BoardSize, GameMode, KONAMI_BOARD_SIZES } from '../../utils/gameConfig';
+import type { GameMode } from '../../utils/gameConfig';
 import { cn } from '../../lib/utils';
 import { playArcadeSound } from '../../utils/arcadeSound';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 interface LandingPlayPanelProps {
-  selectedSize: BoardSize;
-  onSizeChange: (size: BoardSize) => void;
-  konamiUnlocked: boolean;
   rulesPreview: string;
   onStart: (mode: GameMode) => void;
   onCreateOnline: () => void;
@@ -73,9 +70,6 @@ function ModeRow({ index, title, subtitle, icon, accent, emphasis = false, onCli
 }
 
 export function LandingPlayPanel({
-  selectedSize,
-  onSizeChange,
-  konamiUnlocked,
   rulesPreview,
   onStart,
   onCreateOnline,
@@ -106,31 +100,6 @@ export function LandingPlayPanel({
           </PopoverContent>
         </Popover>
       </div>
-
-      {konamiUnlocked && (
-        <div data-mode-row className="mb-3">
-          <p className="font-display mb-2 text-[10px] font-bold tracking-[0.3em] text-[var(--neon-violet)] uppercase">
-            Board size
-          </p>
-          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
-            {KONAMI_BOARD_SIZES.map((size) => (
-              <button
-                key={size}
-                type="button"
-                onClick={() => onSizeChange(size)}
-                className={cn(
-                  'chamfer-sm font-display flex min-h-9 items-center justify-center px-1 text-sm font-bold leading-none transition-colors duration-150',
-                  selectedSize === size
-                    ? 'bg-[var(--neon-orange)] text-white'
-                    : 'bg-[color-mix(in_oklch,var(--arcade-fg),transparent_93%)] arcade-text-muted hover:bg-[color-mix(in_oklch,var(--arcade-fg),transparent_85%)]'
-                )}
-              >
-                {size}×{size}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div className="flex flex-col gap-1.5">
         <ModeRow
