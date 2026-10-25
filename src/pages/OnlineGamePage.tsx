@@ -42,6 +42,16 @@ import { LayerWinStinger, type LayerWinEvent } from '../components/game/LayerWin
 import { playArcadeSound } from '../utils/arcadeSound';
 import { getPointsForOutcome } from '../services/scoreService';
 
+const DISCONNECT_FORFEIT_MS = 10 * 60 * 1000;
+
+function formatForfeitCountdown(disconnectedAt: string | null, nowMs: number): string {
+  if (!disconnectedAt) return 'waiting to reconnect…';
+  const remaining = Math.max(0, Date.parse(disconnectedAt) + DISCONNECT_FORFEIT_MS - nowMs);
+  const minutes = Math.floor(remaining / 60000);
+  const seconds = Math.floor((remaining % 60000) / 1000);
+  return `you win if they don't return in ${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
 export function OnlineGamePage() {
   const { matchId } = useParams<{ matchId: string }>();
   const navigate = useNavigate();
@@ -161,6 +171,29 @@ export function OnlineGamePage() {
     const timer = setTimeout(() => setShowGameOver(true), match.winner ? 950 : 450);
     return () => clearTimeout(timer);
   }, [match?.status, match?.winner, match?.draw]);
+
+  const opponentDisconnectedAt =
+    match && user
+      ? user.id === match.host_id
+        ? match.guest_disconnected_at
+        : match.host_disconnected_at
+      : null;
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    if (!opponentDisconnectedAt || !isGameActive) return;
+    setNowMs(Date.now());
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [opponentDisconnectedAt, isGameActive]);
+
+  // Safety net for the waiting room: a missed realtime join event must not
+  // leave the host staring at the lobby.
+  const isWaiting = match?.status === 'waiting';
+  useEffect(() => {
+    if (!isWaiting) return;
+    const timer = window.setInterval(() => void refresh(), 3000);
+    return () => window.clearInterval(timer);
+  }, [isWaiting, refresh]);
 
   useEffect(() => {
     if (lastMoveIndex === null) return;
@@ -329,6 +362,28 @@ export function OnlineGamePage() {
       ? 'This will end the room. You will not be able to resume this match.'
       : 'Your opponent will win. This match cannot be resumed.';
 
+  if (match.status === 'abandoned') {
+    const mutual = match.abandon_reason === 'mutual_disconnect';
+    return (
+      <ArcadeShell variant="landing">
+        <main className="mx-auto flex max-w-md flex-col items-center gap-4 px-4 pt-24 pb-10 text-center">
+          <h1 className="font-display text-2xl font-bold text-white">
+            {mutual ? 'Match abandoned' : 'Room closed'}
+          </h1>
+          <p className="font-body text-sm arcade-text-muted">
+            {mutual
+              ? 'Both players disconnected, so nobody wins or loses points.'
+              : 'This room is no longer open.'}
+          </p>
+          <Button type="button" variant="outline" className="font-body arcade-glass" onClick={() => navigate('/')}>
+            <ArrowLeft className="size-4" />
+            Back home
+          </Button>
+        </main>
+      </ArcadeShell>
+    );
+  }
+
   if (match.status === 'waiting') {
     const isHost = user.id === match.host_id;
     return (
@@ -399,7 +454,11 @@ export function OnlineGamePage() {
         ? winner === mySymbol
           ? 'Opponent forfeited — you win!'
           : 'You forfeited.'
-        : `${winner} wins.`
+        : match.abandon_reason === 'disconnect_timeout'
+          ? winner === mySymbol
+            ? 'Opponent disconnected — you win!'
+            : 'You were disconnected too long.'
+          : `${winner} wins.`
       : isMyTurn
         ? 'Your turn.'
         : "Opponent's turn.";
@@ -416,7 +475,11 @@ export function OnlineGamePage() {
       ? winner === mySymbol
         ? `${opponentLabel} forfeited the match.`
         : 'You forfeited the match.'
-      : winner === mySymbol
+      : match.abandon_reason === 'disconnect_timeout'
+        ? winner === mySymbol
+          ? `${opponentLabel} left and never came back.`
+          : 'You were away too long.'
+        : winner === mySymbol
         ? `${opponentLabel} has been out-stacked.`
         : `${opponentLabel} out-stacked you.`;
   const overlayPoints = user
@@ -450,7 +513,7 @@ export function OnlineGamePage() {
               <WifiOff className="size-3.5 shrink-0" />
               {connectionStatus === 'reconnecting'
                 ? 'Reconnecting…'
-                : 'Opponent disconnected — waiting to reconnect…'}
+                : `Opponent disconnected — ${formatForfeitCountdown(opponentDisconnectedAt, nowMs)}`}
             </div>
           )}
 

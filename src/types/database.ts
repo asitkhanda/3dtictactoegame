@@ -83,21 +83,6 @@ export type Database = {
     CompositeTypes: { [_ in never]: never };
     Functions: {
       set_username: { Args: { desired_username: string }; Returns: Profile };
-      apply_match_result: {
-        Args: {
-          p_player_id: string;
-          p_opponent_id: string;
-          p_board_size: number;
-          p_match_id: string;
-          p_outcome: string;
-          p_points: number;
-        };
-        Returns: undefined;
-      };
-      submit_match_move: {
-        Args: { p_match_id: string; p_cell_index: number };
-        Returns: MatchRow;
-      };
       join_match_by_code: {
         Args: { p_room_code: string };
         Returns: MatchRow;

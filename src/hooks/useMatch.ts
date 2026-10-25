@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { MatchRow } from '../types/database';
 import { getMatch, updateMatchPresence } from '../services/matchService';
+import { mergeMatch } from '../utils/matchMerge';
 
 export type ConnectionStatus = 'synced' | 'reconnecting' | 'error';
 
@@ -19,9 +20,7 @@ export function useMatch(matchId: string | undefined, userId: string | undefined
       setConnectionStatus('error');
       return;
     }
-    setMatch((current) =>
-      !current || (next && next.revision >= current.revision) ? next : current
-    );
+    setMatch((current) => (next && current && next.revision === current.revision ? next : mergeMatch(current, next)));
     setConnectionStatus('synced');
     setError(null);
   }, [matchId]);
@@ -43,9 +42,7 @@ export function useMatch(matchId: string | undefined, userId: string | undefined
         },
         (payload) => {
           const next = payload.new as MatchRow;
-          setMatch((current) =>
-            !current || next.revision > current.revision ? next : current
-          );
+          setMatch((current) => mergeMatch(current, next));
           setConnectionStatus('synced');
         }
       )

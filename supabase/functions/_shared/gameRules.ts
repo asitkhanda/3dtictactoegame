@@ -239,10 +239,6 @@ export function isLayerFull(
   return true;
 }
 
-export function isDraw(config: GameRulesConfig, board: BoardState): boolean {
-  return board.every((cell) => cell !== null);
-}
-
 export function isValidBoardState(config: GameRulesConfig, board: BoardState): boolean {
   return (
     Array.isArray(board) &&

@@ -32,12 +32,15 @@ Deno.serve(async (req) => {
     for (const match of matches ?? []) {
       const hostDisconnected = Boolean(match.host_disconnected_at);
       const guestDisconnected = Boolean(match.guest_disconnected_at);
-      if (hostDisconnected === guestDisconnected) continue;
+      if (!hostDisconnected && !guestDisconnected) continue;
 
-      const disconnectedAt = hostDisconnected
-        ? match.host_disconnected_at
-        : match.guest_disconnected_at;
-      if (!disconnectedAt || Date.now() - Date.parse(disconnectedAt) < 10 * 60 * 1000) continue;
+      // With one side gone the timer runs from its disconnect; with both
+      // gone it runs from whichever left last.
+      const disconnectedAt = Math.max(
+        hostDisconnected ? Date.parse(match.host_disconnected_at) : 0,
+        guestDisconnected ? Date.parse(match.guest_disconnected_at) : 0
+      );
+      if (!disconnectedAt || Date.now() - disconnectedAt < 10 * 60 * 1000) continue;
 
       const rawConfig = match.config as { size?: unknown; viewMode?: unknown };
       if (
@@ -53,15 +56,19 @@ Deno.serve(async (req) => {
       );
       if (!isValidGameRulesConfig(config)) continue;
 
+      // Mutual disconnects are abandoned by the RPC, which ignores the winner.
+      const mutual = hostDisconnected && guestDisconnected;
       const connectedPlayerId = hostDisconnected ? match.guest_id : match.host_id;
       const connectedPlayer: 'X' | 'O' =
         connectedPlayerId === (match.host_plays_x ? match.host_id : match.guest_id) ? 'X' : 'O';
-      const winner = chooseTimeoutWinner(
-        config,
-        match.board as BoardState,
-        match.layer_winners as LayerResult[],
-        connectedPlayer
-      );
+      const winner = mutual
+        ? null
+        : chooseTimeoutWinner(
+            config,
+            match.board as BoardState,
+            match.layer_winners as LayerResult[],
+            connectedPlayer
+          );
 
       const { data: settledMatch, error: settleError } = await admin.rpc('settle_stale_match', {
         p_match_id: match.id,
@@ -70,7 +77,9 @@ Deno.serve(async (req) => {
         p_draw: false,
         p_reason: 'disconnect_timeout',
       });
-      if (!settleError && settledMatch?.status === 'finished') settled++;
+      if (!settleError && (settledMatch?.status === 'finished' || settledMatch?.status === 'abandoned')) {
+        settled++;
+      }
     }
 
     return json({ settled });

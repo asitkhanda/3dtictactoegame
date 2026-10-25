@@ -47,6 +47,11 @@ export function useAiMove() {
           layerWinners,
           player,
         });
+      }).catch((error: Error) => {
+        // A cancelled request (unmount, new game) must stay cancelled; a
+        // crashed worker falls back to the same search on this thread.
+        if (error.message === 'AI worker cancelled') throw error;
+        return getComputerMove(config, board, layerWinners, player);
       });
     },
     []
