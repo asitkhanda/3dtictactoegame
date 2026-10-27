@@ -11,6 +11,7 @@
 // Deploy with verify_jwt on. Secrets used: none beyond the built-in Supabase ones.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { isStaleAfterRefund } from '../_shared/appStoreNotification.ts';
 import { verifyAppStoreTransaction } from '../_shared/appStoreTransaction.ts';
 
 const BUNDLE_ID = 'com.twistedtac.TwistedTac';
@@ -67,12 +68,17 @@ Deno.serve(async (req) => {
     // One purchase unlocks one account (unique index in migration 013).
     const { data: existing, error: lookupError } = await admin
       .from('entitlements')
-      .select('user_id')
+      .select('user_id, revoked_at')
       .eq('original_transaction_id', transaction.originalTransactionId)
       .maybeSingle();
     if (lookupError) return json({ error: lookupError.message }, 500);
     if (existing && existing.user_id !== user.id) {
       return json({ error: 'This purchase is already linked to another account' }, 409);
+    }
+
+    // A receipt from before a refund must not switch the entitlement back on.
+    if (existing && isStaleAfterRefund(existing.revoked_at, transaction.purchaseDate)) {
+      return json({ error: 'This purchase was refunded' }, 400);
     }
 
     const { error } = await admin.from('entitlements').upsert(
@@ -81,6 +87,7 @@ Deno.serve(async (req) => {
         feature: FEATURE,
         source: `app_store_${transaction.environment.toLowerCase()}`,
         original_transaction_id: transaction.originalTransactionId,
+        revoked_at: null,
       },
       { onConflict: 'user_id,feature' },
     );
