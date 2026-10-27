@@ -16,6 +16,7 @@ enum Destination: Hashable {
     case online(MatchRow)
     #if DEBUG
     case debugOnline(String)
+    case debugBoard(String)
     #endif
 }
 
@@ -46,6 +47,9 @@ struct RootView: View {
                     #if DEBUG
                     case let .debugOnline(name):
                         DebugOnlinePreview.view(for: name)
+                            .toolbar(.hidden, for: .navigationBar)
+                    case let .debugBoard(spec):
+                        DebugOnlinePreview.boardView(for: spec)
                             .toolbar(.hidden, for: .navigationBar)
                     #endif
                     case let .online(match):
@@ -79,6 +83,8 @@ struct RootView: View {
             #if DEBUG
             if let preview = DebugOnlinePreview.scenario {
                 path = [.debugOnline(preview)]
+            } else if let spec = DebugOnlinePreview.boardSpec {
+                path = [.debugBoard(spec)]
             }
             #endif
         }

@@ -11,6 +11,36 @@ enum DebugOnlinePreview {
         return args[i + 1]
     }
 
+    /// `-previewBoard 5` opens a 5x5x5 two-player game part-way through; `-previewBoard 5f`
+    /// is the flat 5x5 board. The moves come from a fixed seed, so every launch matches.
+    static var boardSpec: String? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-previewBoard"), args.indices.contains(i + 1) else { return nil }
+        return args[i + 1]
+    }
+
+    @MainActor
+    static func boardView(for spec: String) -> some View {
+        let flat = spec.hasSuffix("f")
+        let size = Int(spec.filter(\.isNumber)) ?? 3
+        let config = GameRulesConfig(size: size, viewMode: flat ? .flat : .cube)!
+        let model = LocalGameModel(config: config, mode: .twoPlayer)
+        var seed: UInt64 = 0x9E3779B97F4A7C15
+        func next() -> Int {
+            seed = seed &* 6364136223846793005 &+ 1442695040888963407
+            return Int(seed >> 33)
+        }
+        let target = max(4, config.cellCount * 3 / 10)
+        var placed = 0
+        while placed < target, !model.isFinished {
+            let open = (0..<config.cellCount).filter { model.state.board[$0] == nil }
+            guard !open.isEmpty else { break }
+            model.humanTap(open[next() % open.count])
+            placed += 1
+        }
+        return GameView(model: model)
+    }
+
     @MainActor
     static func view(for name: String) -> some View {
         let me = "me", rival = "rival"
