@@ -16,5 +16,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "supabase/functions/_shared", "vite.config.ts"]
+  "include": ["src", "supabase/functions/_shared", "vite.config.ts"],
+  "exclude": ["supabase/functions/_shared/appStoreTransaction.ts"]
 }
