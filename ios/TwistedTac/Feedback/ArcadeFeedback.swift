@@ -47,6 +47,10 @@ final class ArcadeFeedback {
 
     private func buffer(for sound: ArcadeSound) -> AVAudioPCMBuffer? {
         if let cached = buffers[sound] { return cached }
+        if let recorded = recording(for: sound) {
+            buffers[sound] = recorded
+            return recorded
+        }
         let samples = SoundSynth.render(sound)
         guard let format = AVAudioFormat(standardFormatWithSampleRate: SoundSynth.sampleRate, channels: 1),
               let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count))
@@ -56,6 +60,20 @@ final class ArcadeFeedback {
             buffer.floatChannelData![0].update(from: source.baseAddress!, count: samples.count)
         }
         buffers[sound] = buffer
+        return buffer
+    }
+
+    /// Loads the bundled recording (44.1 kHz mono, matching the player format).
+    private func recording(for sound: ArcadeSound) -> AVAudioPCMBuffer? {
+        guard let name = sound.recordingName,
+              let url = Bundle.main.url(forResource: name, withExtension: "wav"),
+              let file = try? AVAudioFile(forReading: url),
+              let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat,
+                                            frameCapacity: AVAudioFrameCount(file.length)),
+              (try? file.read(into: buffer)) != nil,
+              file.processingFormat.sampleRate == SoundSynth.sampleRate,
+              file.processingFormat.channelCount == 1
+        else { return nil }
         return buffer
     }
 
@@ -82,28 +100,9 @@ final class ArcadeFeedback {
     }
 
     private func playHaptic(_ sound: ArcadeSound) {
-        guard let hapticEngine else { return }
-        var events: [CHHapticEvent] = []
-        var time = 0.0
-        for (i, milliseconds) in sound.hapticPattern.enumerated() {
-            let seconds = Double(milliseconds) / 1000
-            if i % 2 == 0 {
-                let parameters = [
-                    CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.8),
-                    CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5),
-                ]
-                events.append(
-                    seconds < 0.03
-                        ? CHHapticEvent(eventType: .hapticTransient, parameters: parameters, relativeTime: time)
-                        : CHHapticEvent(eventType: .hapticContinuous, parameters: parameters,
-                                        relativeTime: time, duration: seconds)
-                )
-            }
-            time += seconds
-        }
+        guard let hapticEngine, let pattern = sound.hapticPattern else { return }
         do {
             try hapticEngine.start()
-            let pattern = try CHHapticPattern(events: events, parameters: [])
             try hapticEngine.makePlayer(with: pattern).start(atTime: 0)
         } catch {
             // Haptics are decoration; never let them break a move.

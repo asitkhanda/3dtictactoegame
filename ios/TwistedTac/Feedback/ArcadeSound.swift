@@ -1,25 +1,27 @@
 import Foundation
 
-/// The same cue set as the web app's src/utils/arcadeSound.ts.
+/// The game's sound cues. The recipes in `layers` match the web app's
+/// src/utils/arcadeSound.ts; the app prefers the recordings in Resources/Sounds.
 enum ArcadeSound: CaseIterable {
     case tap, placeX, placeO, yourTurn, opponentTurn
     case layerWin, layerLost, victory, defeat, draw, invalid
 
-    /// Haptic pattern: alternating vibrate / pause durations in milliseconds,
-    /// starting with a vibration — identical to the web's VIBRATIONS map.
-    var hapticPattern: [Int] {
+    /// Bundled recording for this cue (Resources/Sounds/<name>.wav), or nil to
+    /// use the synthesized recipe below. The recipes also serve as the fallback
+    /// if a recording is ever missing.
+    var recordingName: String? {
         switch self {
-        case .tap: [8]
-        case .placeX: [24]
-        case .placeO: [12, 25, 20]
-        case .yourTurn: [16, 45, 28]
-        case .opponentTurn: [10]
-        case .layerWin: [35, 35, 75]
-        case .layerLost: [20, 50, 20]
-        case .victory: [40, 60, 40, 60, 130]
-        case .defeat: [90, 60, 170]
-        case .draw: [30, 60, 30]
-        case .invalid: [50]
+        case .tap: "tap"
+        case .placeX: "placeX"
+        case .placeO: "placeO"
+        case .yourTurn: "yourTurn"
+        case .opponentTurn: "opponentTurn"
+        case .layerWin: "layerWin"
+        case .layerLost: "layerLost"
+        case .victory: "victory"
+        case .defeat: "defeat"
+        case .invalid: "invalid"
+        case .draw: nil
         }
     }
 }
