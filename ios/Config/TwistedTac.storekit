@@ -1,0 +1,38 @@
+{
+  "identifier" : "7C2A9E41",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "150",
+      "familyShareable" : false,
+      "internalID" : "6F3B2D18",
+      "localizations" : [
+        {
+          "description" : "Every board size from 1x1 up to 8x8x8, flat 2D boards, and hosting online games on any board.",
+          "displayName" : "Larger Boards",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.twistedtac.TwistedTac.largeboards",
+      "referenceName" : "Larger Boards",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_IN",
+    "_storefront" : "IND",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

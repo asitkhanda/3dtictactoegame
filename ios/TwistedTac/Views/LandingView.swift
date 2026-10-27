@@ -6,8 +6,15 @@ struct LandingView: View {
 
     @Environment(AuthManager.self) private var auth
     @Environment(LargeBoards.self) private var largeBoards
+    @Environment(PurchaseManager.self) private var purchases
     @State private var showRules = false
     @State private var showSignIn = false
+    #if DEBUG
+    // `-previewUnlock YES` opens the purchase sheet, for screenshots outside Xcode's StoreKit testing.
+    @State private var showUnlock = UserDefaults.standard.bool(forKey: "previewUnlock")
+    #else
+    @State private var showUnlock = false
+    #endif
 
     var body: some View {
         ZStack {
@@ -67,7 +74,7 @@ struct LandingView: View {
                 .frame(maxWidth: 420)
                 .padding(.horizontal, 28)
 
-                if largeBoards.isUnlocked { sizePicker }
+                if largeBoards.isUnlocked { sizePicker } else if purchases.product != nil { unlockButton }
 
                 Spacer()
                 Text("Local games are casual. Ranked play is online only.")
@@ -79,6 +86,7 @@ struct LandingView: View {
         .overlay(alignment: .topTrailing) { accountButton }
         .sheet(isPresented: $showRules) { RulesSheet() }
         .sheet(isPresented: $showSignIn) { SignInSheet() }
+        .sheet(isPresented: $showUnlock) { UnlockSheet() }
     }
 
     @ViewBuilder
@@ -116,10 +124,22 @@ struct LandingView: View {
     private var boardSize: Int { largeBoards.effectiveSize }
     private var boardViewMode: ViewMode { largeBoards.effectiveViewMode }
 
+    private var unlockButton: some View {
+        Button {
+            ArcadeFeedback.shared.play(.tap)
+            showUnlock = true
+        } label: {
+            Label("Unlock larger boards", systemImage: "lock.open")
+                .font(.subheadline.weight(.semibold))
+        }
+        .buttonStyle(.glass)
+        .tint(Theme.playerO)
+    }
+
     private var sizePicker: some View {
         @Bindable var largeBoards = largeBoards
         return VStack(spacing: 6) {
-            Text("LARGE BOARDS (DEV)").font(.caption2.weight(.bold)).foregroundStyle(Theme.playerO)
+            Text("LARGE BOARDS").font(.caption2.weight(.bold)).foregroundStyle(Theme.playerO)
             HStack {
                 Stepper(sizeLabel, value: $largeBoards.size, in: 1...8)
                     .accessibilityLabel("Board size")
