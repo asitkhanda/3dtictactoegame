@@ -27,7 +27,7 @@ struct UnlockSheet: View {
             VStack(alignment: .leading, spacing: 12) {
                 feature("square.stack.3d.up", "Every size from 1×1 up to 8×8×8")
                 feature("square.grid.3x3", "Flat 2D boards")
-                feature("globe", "Host online games on any board")
+                feature("globe", "Host online games on any board you unlock")
             }
             .frame(maxWidth: 360, alignment: .leading)
             .padding(.horizontal, 28)

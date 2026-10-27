@@ -32,7 +32,7 @@ PLAY YOUR WAY
 • Online — create a room, share the code, and play a friend in real time. Ranked wins, draws and losses move you on the leaderboard.
 
 LARGER BOARDS (OPTIONAL, ONE-TIME PURCHASE)
-• The classic 3×3×3 cube is free forever. Unlock every size from 1×1 up to 8×8×8, flat 2D boards, and hosting online games on any board with a single purchase. No subscription.
+• The classic 3×3×3 cube is free forever. Unlock every size from 1×1 up to 8×8×8, flat 2D boards, and hosting online games on the boards you unlock with a single purchase. Friends can join your game for free. No subscription.
 
 BUILT FOR iPHONE AND iPAD
 • A real 3D board you can drag to orbit and pinch to zoom, with camera presets.
