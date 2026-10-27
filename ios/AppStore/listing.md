@@ -10,7 +10,7 @@ Draft copy and answers for App Store Connect. Edit freely.
 | Bundle ID | com.twistedtac.TwistedTac |
 | Primary category | Games → Board |
 | Secondary category | Games → Strategy |
-| Price | Free, no in-app purchases |
+| Price | Free, with one in-app purchase (Larger Boards, ₹150 one-time) |
 | Support URL | https://www.twistedtac.com/support |
 | Privacy Policy URL | https://www.twistedtac.com/privacy-policy |
 | Marketing URL | https://www.twistedtac.com |
@@ -31,6 +31,9 @@ PLAY YOUR WAY
 • 2 Player — pass and play on one device.
 • Online — create a room, share the code, and play a friend in real time. Ranked wins, draws and losses move you on the leaderboard.
 
+LARGER BOARDS (OPTIONAL, ONE-TIME PURCHASE)
+• The classic 3×3×3 cube is free forever. Unlock every size from 1×1 up to 8×8×8, flat 2D boards, and hosting online games on the boards you unlock with a single purchase. Friends can join your game for free. No subscription.
+
 BUILT FOR iPHONE AND iPAD
 • A real 3D board you can drag to orbit and pinch to zoom, with camera presets.
 • Liquid Glass interface, synthesized sound and haptics.
@@ -38,7 +41,21 @@ BUILT FOR iPHONE AND iPAD
 
 Local games work offline and need no account. Sign in with Apple or Google only for online play and the leaderboard.
 
-Local games work offline. Sign in with Apple only for online play and the leaderboard.
+## In-App Purchase: Larger Boards
+| Field | Value |
+|---|---|
+| Type | Non-Consumable |
+| Reference name | Larger Boards |
+| Product ID | `com.twistedtac.TwistedTac.largeboards` (must match `PurchaseManager.productID`) |
+| Price | ₹150 (India base price; other storefronts follow from it) |
+| Display name (30) | Larger Boards |
+| Description (45) | Every board size, flat 2D, online hosting |
+| Family Sharing | Off |
+| Review screenshot | The unlock sheet (landing screen → "Unlock larger boards") |
+| Review notes | Tap "Unlock larger boards" on the main menu. Buying unlocks a size picker on the same screen. |
+
+The server grants the matching online entitlement after the app sends Apple's signed
+transaction to the `verify-purchase` edge function (migration 013).
 
 ## Keywords (100)
 tic tac toe,3d,puzzle,strategy,board game,cube,multiplayer,brain,two player,ai,online
@@ -65,6 +82,7 @@ third-party advertising, no analytics SDKs.
 | Name (optional, from Apple) | Yes | Yes | No | App Functionality |
 | User ID | Yes | Yes | No | App Functionality |
 | Gameplay content (matches, scores) | Yes | Yes | No | App Functionality |
+| Purchase history (the Larger Boards purchase, recorded on the account) | Yes | Yes | No | App Functionality |
 
 Mirrors `TwistedTac/PrivacyInfo.xcprivacy`. Keep the two in sync.
 
@@ -76,6 +94,9 @@ per-build prompt.
 The app offers Sign in with Apple and Continue with Google (Google exists so players from our website keep their stats). Reviewers can use their own Apple ID; there is no username/password.
 Local play (VS AI and 2 Player) needs no account. Online play needs a second player: review
 can create a room on one device and join from another, or from twistedtac.com.
+In-app purchase: "Unlock larger boards" on the main menu offers the one-time Larger Boards
+purchase (sandbox accounts work). "Restore purchases" is in the same sheet. Playing the
+classic board needs no purchase.
 Account deletion: Profile → Delete account (re-confirms with Apple, then deletes the
 account and revokes the app's Apple access).
 

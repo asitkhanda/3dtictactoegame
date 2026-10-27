@@ -18,8 +18,12 @@ still works for local play, and sign-in and the leaderboard stay hidden.
 
 Pick an iPhone or iPad simulator and run. Local play (vs AI and 2 player) works
 offline. Debug builds show a board-size picker on the landing screen. Release
-builds play the classic 3×3×3 only: the other sizes are reserved for a future paid,
-app-only feature (see `LargeBoards`).
+builds play the classic 3×3×3 until the player buys the one-time "Larger Boards"
+purchase (`PurchaseManager`, StoreKit 2). To try the purchase in the simulator, run from
+Xcode: the scheme uses `Config/TwistedTac.storekit` (₹150) and `-simulateRelease YES`
+hides the debug picker so you see what players see. Online play is enforced
+server-side: the app sends Apple's signed transaction to the `verify-purchase` edge
+function, which records the entitlement (migration 013).
 
 ## Invite links and accessibility
 - **Invite links:** `https://www.twistedtac.com/join/CODE` opens the app via universal

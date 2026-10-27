@@ -80,6 +80,8 @@ targets:
     platform: iOS
     sources:
       - TwistedTacTests
+      - path: Config/TwistedTac.storekit
+        buildPhase: resources
     dependencies:
       - target: TwistedTac
     settings:
@@ -97,6 +99,8 @@ schemes:
         TwistedTac: all
     run:
       config: Debug
+      # Lets the simulator offer the ₹150 purchase without App Store Connect.
+      storeKitConfiguration: Config/TwistedTac.storekit
     test:
       config: Debug
       targets:
