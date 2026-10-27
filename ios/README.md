@@ -86,3 +86,14 @@ npm run gen:parity
 ```bash
 cd ios/TwistedTacKit && swift test
 ```
+
+## Shipping to TestFlight
+Bump `CURRENT_PROJECT_VERSION` in `project.yml`, run `xcodegen generate`, then:
+
+```bash
+xcodebuild archive -project TwistedTac.xcodeproj -scheme TwistedTac -configuration Release \
+  -destination 'generic/platform=iOS' -archivePath /tmp/tt.xcarchive -allowProvisioningUpdates
+xcodebuild -exportArchive -archivePath /tmp/tt.xcarchive -exportOptionsPlist tools/ExportOptions.plist \
+  -allowProvisioningUpdates
+```
+The export options upload straight to App Store Connect.
