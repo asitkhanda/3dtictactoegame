@@ -44,14 +44,15 @@ function validAt(certificate: X509Certificate, at: Date): boolean {
 }
 
 /**
- * Returns the transaction's claims, or throws if the signature, the certificate
- * chain or the pinned root doesn't check out. `pinnedRootSha256` is injectable
- * so tests can use a throwaway chain.
+ * Returns the claims of any JWS Apple signs (a transaction, or a server
+ * notification), or throws if the signature, the certificate chain or the
+ * pinned root doesn't check out. `pinnedRootSha256` is injectable so tests can
+ * use a throwaway chain.
  */
-export async function verifyAppStoreTransaction(
+export async function verifyAppleJws<T extends { signedDate: number }>(
   jws: string,
   pinnedRootSha256: string = APPLE_ROOT_G3_SHA256,
-): Promise<AppStoreTransaction> {
+): Promise<T> {
   const header = decodeProtectedHeader(jws);
   if (header.alg !== 'ES256') throw new Error('Unexpected signing algorithm');
   const chain = header.x5c;
@@ -74,7 +75,7 @@ export async function verifyAppStoreTransaction(
 
   const key = await importX509(toPem(chain[0]), 'ES256');
   const { payload } = await compactVerify(jws, key);
-  const claims = JSON.parse(new TextDecoder().decode(payload)) as AppStoreTransaction;
+  const claims = JSON.parse(new TextDecoder().decode(payload)) as T;
 
   // Certificates must have been valid when Apple signed the transaction.
   const signedAt = new Date(claims.signedDate);
@@ -82,4 +83,12 @@ export async function verifyAppStoreTransaction(
     throw new Error('Certificate was not valid when the transaction was signed');
   }
   return claims;
+}
+
+/** A signed transaction, e.g. from StoreKit's `jwsRepresentation`. */
+export function verifyAppStoreTransaction(
+  jws: string,
+  pinnedRootSha256: string = APPLE_ROOT_G3_SHA256,
+): Promise<AppStoreTransaction> {
+  return verifyAppleJws<AppStoreTransaction>(jws, pinnedRootSha256);
 }
