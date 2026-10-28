@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { LegalPageLayout } from '../components/legal/LegalPageLayout';
 import { SUPPORT_EMAIL, getIosBetaCta } from '../config/app';
 
-const LAST_UPDATED = 'October 25, 2026';
+const LAST_UPDATED = 'October 28, 2026';
 
 export function SupportPage() {
   const betaCta = getIosBetaCta();

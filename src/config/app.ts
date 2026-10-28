@@ -1,5 +1,5 @@
 export const SITE_URL = 'https://twistedtac.com';
-export const SUPPORT_EMAIL = 'asitsignals@gmail.com';
+export const SUPPORT_EMAIL = 'contact@refrakted.com';
 
 /**
  * Public TestFlight link for the iOS beta. Leave null until an external
