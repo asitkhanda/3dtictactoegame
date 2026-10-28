@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { LegalPageLayout } from '../components/legal/LegalPageLayout';
 
-const LAST_UPDATED = 'October 25, 2026';
+const LAST_UPDATED = 'October 28, 2026';
 const CONTACT_EMAIL = 'asitsignals@gmail.com';
 
 export function TermsOfServicePage() {
@@ -116,14 +116,7 @@ export function TermsOfServicePage() {
         acceptance of the updated Terms.
       </p>
 
-      <h2>14. Governing law</h2>
-      <p>
-        These Terms are governed by the laws applicable in the jurisdiction where the Service is
-        operated, without regard to conflict-of-law principles. If you have a dispute, please
-        contact us first so we can try to resolve it informally.
-      </p>
-
-      <h2>15. Contact</h2>
+      <h2>14. Contact</h2>
       <p>
         Questions about these Terms? Contact us at{' '}
         <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> or review our{' '}
