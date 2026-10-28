@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import { LegalPageLayout } from '../components/legal/LegalPageLayout';
+import { SUPPORT_EMAIL } from '../config/app';
 
 const LAST_UPDATED = 'October 28, 2026';
-const CONTACT_EMAIL = 'asitsignals@gmail.com';
+const CONTACT_EMAIL = SUPPORT_EMAIL;
 
 export function TermsOfServicePage() {
   return (
