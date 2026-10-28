@@ -16,7 +16,7 @@ export function LegalPageLayout({ title, lastUpdated, children }: LegalPageLayou
 
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 pt-24 pb-10 sm:px-6">
         <header className="text-center">
-          <h1 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h1 className="font-display text-3xl font-bold tracking-tight text-[var(--arcade-fg)] sm:text-4xl">
             {title}
           </h1>
           <p className="font-body mt-2 text-sm arcade-text-muted">Last updated: {lastUpdated}</p>
