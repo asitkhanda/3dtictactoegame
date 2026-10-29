@@ -12,6 +12,17 @@ export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 ./gradlew :engine:test
 ```
 
+## Backend setup
+Online play, sign-in and the leaderboard use the same Supabase project as the web and iOS apps.
+Copy `supabase.example.properties` to `supabase.local.properties` (gitignored) and fill in the project
+URL and publishable key. Without it the app still builds and plays local games; the online buttons hide.
+
+- **Google sign-in** opens the system browser and returns through `twistedtac://login-callback`, the
+  same redirect URL the iOS app uses, so it is already on Supabase's allow-list.
+- **Invite links** open the app from `twistedtac://join/CODE`. `https://www.twistedtac.com/join/CODE`
+  also opens it once the site serves `/.well-known/assetlinks.json` for the release signing key
+  (added when the app is signed for the store).
+
 ## Run the app
 Open `android/` in Android Studio and run the `app` configuration, or:
 

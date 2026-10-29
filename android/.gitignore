@@ -11,3 +11,5 @@ captures/
 *.jks
 *.keystore
 keystore.properties
+# Supabase URL and key for this machine
+supabase.local.properties

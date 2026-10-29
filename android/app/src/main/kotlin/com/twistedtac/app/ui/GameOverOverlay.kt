@@ -46,6 +46,8 @@ fun GameOverOverlay(
     onViewBoard: () -> Unit,
     onMenu: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Ranked points earned (or lost) — online games only. */
+    points: Int? = null,
 ) {
     var shown by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { shown = true }
@@ -85,6 +87,21 @@ fun GameOverOverlay(
                 textAlign = TextAlign.Center,
             )
             Text(subtitle, color = Palette.muted, fontSize = 16.sp, textAlign = TextAlign.Center)
+            if (points != null) {
+                Text(
+                    when {
+                        points > 0 -> "+$points rank points"
+                        points < 0 -> "$points rank points"
+                        else -> "No rank points"
+                    },
+                    color = Palette.foreground,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .glass(RoundedCornerShape(50), tint = accent, strength = 2f)
+                        .padding(horizontal = 14.dp, vertical = 6.dp),
+                )
+            }
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 GlassButton(onPrimary, Modifier.fillMaxWidth(), tint = accent, prominent = true) { GlassLabel(primaryLabel) }
                 GlassButton(onViewBoard, Modifier.fillMaxWidth()) { GlassLabel("View board") }

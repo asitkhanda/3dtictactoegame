@@ -25,14 +25,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Icon
+import com.twistedtac.app.auth.AuthManager
 import com.twistedtac.app.game.Cue
 import com.twistedtac.app.game.GameFeedback
 import com.twistedtac.app.game.LocalMode
 import com.twistedtac.app.theme.Palette
 
 @Composable
-fun LandingScreen(onPlay: (LocalMode) -> Unit, feedback: GameFeedback = GameFeedback.None) {
+fun LandingScreen(
+    auth: AuthManager,
+    onPlay: (LocalMode) -> Unit,
+    onOnline: () -> Unit,
+    onLeaderboard: () -> Unit,
+    onProfile: () -> Unit,
+    onSignIn: () -> Unit,
+    feedback: GameFeedback = GameFeedback.None,
+) {
     var showRules by remember { mutableStateOf(false) }
+    val signedIn = auth.phase == AuthManager.Phase.READY
 
     val title: @Composable () -> Unit = {
         Column(
@@ -76,6 +90,15 @@ fun LandingScreen(onPlay: (LocalMode) -> Unit, feedback: GameFeedback = GameFeed
                 tint = Palette.playerO,
                 prominent = true,
             ) { GlassLabel("2 Player") }
+            if (auth.isConfigured) {
+                GlassButton(
+                    onClick = { feedback.play(Cue.TAP); if (signedIn) onOnline() else onSignIn() },
+                    modifier = Modifier.fillMaxWidth(),
+                    tint = Palette.playerO,
+                    prominent = true,
+                ) { GlassLabel(if (signedIn) "Play online" else "Sign in to play online") }
+                GlassButton(onClick = onLeaderboard, modifier = Modifier.fillMaxWidth()) { GlassLabel("Leaderboard") }
+            }
             GlassButton(onClick = { showRules = true }, modifier = Modifier.fillMaxWidth()) { GlassLabel("How to play") }
         }
     }
@@ -86,6 +109,21 @@ fun LandingScreen(onPlay: (LocalMode) -> Unit, feedback: GameFeedback = GameFeed
             .background(Palette.background)
             .systemBarsPadding(),
     ) {
+        if (auth.isConfigured) {
+            Box(Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 16.dp)) {
+                GlassButton(
+                    onClick = { if (signedIn) onProfile() else onSignIn() },
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
+                    minHeight = 44.dp,
+                    description = if (signedIn) "Profile" else "Sign in",
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    val profile = auth.profile
+                    if (signedIn && profile != null) AvatarView(profile.avatarUrl, profile.username ?: "?", 34.dp)
+                    else Icon(Icons.Filled.Person, null, tint = Palette.foreground)
+                }
+            }
+        }
         if (maxWidth > maxHeight) {
             // Landscape: title on one side, menu on the other, so nothing needs scrolling.
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
@@ -99,6 +137,9 @@ fun LandingScreen(onPlay: (LocalMode) -> Unit, feedback: GameFeedback = GameFeed
                 Spacer(Modifier.height(28.dp))
                 menu()
                 Spacer(Modifier.weight(1.3f))
+                if (auth.isConfigured) {
+                    Text("Local games are casual. Ranked play is online only.", color = Palette.muted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
+                }
             }
         }
     }

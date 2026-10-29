@@ -12,7 +12,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -73,3 +75,12 @@ fun GlassLabel(text: String, color: Color = Palette.foreground) {
 }
 
 val Capsule: Shape = CircleShape
+
+/** A click with no ripple, for text links inside already-styled surfaces. */
+fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier = composed {
+    clickable(
+        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+        indication = null,
+        onClick = onClick,
+    )
+}
