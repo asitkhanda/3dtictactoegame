@@ -33,7 +33,7 @@ PLAY YOUR WAY
 
 BUILT FOR PHONES AND TABLETS
 • A real 3D board you can drag to orbit and pinch to zoom, with camera presets.
-• Synthesized-feel sound and haptics.
+• Arcade sound and haptics.
 • TalkBack support with a layer-by-layer board.
 • Portrait and landscape.
 
@@ -123,10 +123,15 @@ Add link and tick `www.twistedtac.com`. Until verified, tapping an invite link o
 has an "Open this room in the app" link.
 
 ## Before submitting
-- [ ] Deploy the website so `/.well-known/assetlinks.json` is live (invite links open the app).
+- [x] Website deployed; `/.well-known/assetlinks.json` is live. Google's verifier still reports text/html, so invite links go through the join page's "Open in the Twisted Tac app" button.
 - [ ] Back up the keystore and `keystore.properties`.
 - [ ] Create the app in the console with package `com.twistedtac.app`; upload the APK.
 - [ ] Paste the listing text; upload the icon, feature graphic and screenshots at the sizes it asks for.
 - [ ] After the first store install, check the app's signing certificate. If PhonePe re-signs the APK, add that
       certificate's SHA-256 to `public/.well-known/assetlinks.json` as a second fingerprint.
 - [ ] Larger Boards purchase: pending the payment provider decision (not in this release).
+
+## Updating after the first release
+Build with `./gradlew :app:assembleRelease` (raise `versionCode`), then
+`PHONEPE_AUTH='<console value>' tools/phonepe-upload.sh`. The script uses PhonePe's Update API and is untested
+until the first version is live. Always sign with the same keystore.
