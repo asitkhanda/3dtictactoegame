@@ -18,7 +18,7 @@ import { LandingMarquee } from './landing/LandingMarquee';
 import { ResumeGameBanner } from './online/ResumeGameBanner';
 import { CreateRoomDialog } from './online/CreateRoomDialog';
 import { JoinRoomDialog } from './online/JoinRoomDialog';
-import { IosBetaCard } from './landing/IosBetaCard';
+import { MobileAppsCard } from './landing/MobileAppsCard';
 import { LandingSeoContent } from './landing/LandingSeoContent';
 
 interface GameSetupMenuProps {
@@ -87,7 +87,7 @@ export function GameSetupMenu({ onStart }: GameSetupMenuProps) {
               />
             </div>
 
-            <IosBetaCard />
+            <MobileAppsCard />
           </div>
 
           <div data-hero-side className="flex min-w-0 items-center justify-center py-2 lg:py-0">

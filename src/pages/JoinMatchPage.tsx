@@ -5,12 +5,17 @@ import { useAuth } from '../contexts/AuthContext';
 import { ArcadeShell } from '../components/ArcadeShell';
 import { AppHeader } from '../components/layout/AppHeader';
 import { SignInButton } from '../components/auth/SignInButton';
+import { appInviteUrl, isMobileBrowser } from '../utils/inviteLinks';
 
 export function JoinMatchPage() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
   const { user, needsUsername, isConfigured } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  // Installed apps normally take this link before the page loads; on a phone whose browser
+  // doesn't, offer to open the room in the app by hand.
+  const appUrl = appInviteUrl(code);
+  const showOpenInApp = appUrl !== null && isMobileBrowser(navigator.userAgent);
 
   useEffect(() => {
     if (!isConfigured || !code) return;
@@ -44,6 +49,15 @@ export function JoinMatchPage() {
           <p className="font-body text-sm arcade-text-muted">Pick a username to continue.</p>
         )}
         {error && <p className="font-body text-sm text-destructive">{error}</p>}
+        {showOpenInApp && (
+          <p className="font-body text-sm arcade-text-muted">
+            Have the Twisted Tac app?{' '}
+            <a href={appUrl} className="underline underline-offset-4">
+              Open this room in the app
+            </a>
+            .
+          </p>
+        )}
       </main>
     </ArcadeShell>
   );

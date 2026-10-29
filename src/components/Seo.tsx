@@ -20,7 +20,7 @@ const HOME_SCHEMA = {
       '@id': `${SITE_URL}/#game`,
       name: 'Twisted Tac',
       description:
-        'A free 3D Tic-Tac-Toe game with layered boards, cross-layer winning lines, AI, local multiplayer, and online matches. Play in your browser, or try the iPhone and iPad app in beta.',
+        'A free 3D Tic-Tac-Toe game with layered boards, cross-layer winning lines, AI, local multiplayer, and online matches. Play in your browser now; iPhone, iPad and Android apps are coming soon.',
       url: `${SITE_URL}/`,
       image: SOCIAL_IMAGE,
       applicationCategory: 'GameApplication',
@@ -96,7 +96,7 @@ function getPageMeta(pathname: string): PageMeta {
     return {
       title: 'Support — Twisted Tac',
       description:
-        'Get help with Twisted Tac on the web and on iPhone and iPad: how to play, accounts, online rooms, deleting your account, and the iOS beta.',
+        'Get help with Twisted Tac on the web and in the mobile apps: how to play, accounts, online rooms, deleting your account, and the iPhone, iPad and Android apps coming soon.',
       canonical: `${SITE_URL}/support`,
       indexable: true,
     };
