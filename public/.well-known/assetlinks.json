@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.twistedtac.app",
+      "sha256_cert_fingerprints": ["2A:B5:D6:88:72:1D:F6:7B:C5:5F:34:48:BD:D2:26:4C:71:0E:CD:DE:87:7E:91:49:7B:5A:F1:40:18:50:20:31"]
+    }
+  }
+]

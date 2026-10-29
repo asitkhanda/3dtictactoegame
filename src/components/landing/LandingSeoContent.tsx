@@ -36,11 +36,11 @@ export function LandingSeoContent() {
             </summary>
             <p className="font-body mt-2 text-sm leading-relaxed arcade-text-muted">
               Yes. The browser game supports touch controls, mobile layouts, AI matches, and local
-              multiplayer. A native iPhone and iPad app is also in beta on TestFlight; see the{' '}
-              <Link to="/support#ios-beta" className="underline underline-offset-4">
+              multiplayer. Native iPhone, iPad and Android apps are coming soon; see the{' '}
+              <Link to="/support#apps" className="underline underline-offset-4">
                 support page
               </Link>{' '}
-              to request access.
+              for details.
             </p>
           </details>
           <details className="group border-b border-[var(--arcade-fg)]/10 pb-3">

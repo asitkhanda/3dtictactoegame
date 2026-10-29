@@ -1,12 +1,11 @@
 import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LegalPageLayout } from '../components/legal/LegalPageLayout';
-import { SUPPORT_EMAIL, getIosBetaCta } from '../config/app';
+import { SUPPORT_EMAIL } from '../config/app';
 
-const LAST_UPDATED = 'October 28, 2026';
+const LAST_UPDATED = 'October 29, 2026';
 
 export function SupportPage() {
-  const betaCta = getIosBetaCta();
   const { hash } = useLocation();
 
   // React Router doesn't scroll to #anchors on its own.
@@ -17,7 +16,7 @@ export function SupportPage() {
   return (
     <LegalPageLayout title="Support" lastUpdated={LAST_UPDATED}>
       <p>
-        Need help with Twisted Tac on the web or on iPhone and iPad? Email us at{' '}
+        Need help with Twisted Tac on the web or in the mobile apps? Email us at{' '}
         <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a> and include what device or browser
         you are using, what you expected to happen, and what happened instead. We aim to reply
         within a few days.
@@ -37,7 +36,7 @@ export function SupportPage() {
       <p>
         No. Playing against the AI and local two-player mode never need an account. An account is
         only required for online matches, your profile and the leaderboard. On the website you sign
-        in with Google. In the iPhone and iPad app you can sign in with Apple or Google. Use the
+        in with Google. In the mobile apps you can sign in with Google, and on iPhone and iPad with Apple too. Use the
         same Google account in both places to keep your username and stats.
       </p>
 
@@ -50,8 +49,8 @@ export function SupportPage() {
 
       <h3>How do I delete my account?</h3>
       <p>
-        In the iPhone and iPad app, open your profile and choose <strong>Delete account</strong>.
-        It confirms with Apple if you signed in with Apple, then permanently deletes your profile,
+        In the mobile apps, open your profile and choose <strong>Delete account</strong>.
+        On iPhone and iPad it confirms with Apple if you signed in with Apple, then permanently deletes your profile,
         statistics and game history. On the website, email us from the address on your account and
         we will delete it for you. See our <Link to="/privacy-policy">Privacy Policy</Link> for
         details.
@@ -63,24 +62,15 @@ export function SupportPage() {
         look at the match record and correct genuine mistakes.
       </p>
 
-      <h2 id="ios-beta">iPhone and iPad app (beta)</h2>
+      <h2 id="apps">Mobile apps (coming soon)</h2>
       <p>
-        Twisted Tac for iPhone and iPad is in beta on Apple&apos;s TestFlight. It needs iOS 26 or
-        later. It uses the same accounts and leaderboard as the website, so you can play online
-        against people on either platform.
+        Native Twisted Tac apps for iPhone and iPad and for Android are on their way. They use the
+        same accounts and leaderboard as the website, so you will be able to play online against
+        people on any platform. Until they arrive, Twisted Tac plays in your phone&apos;s browser.
       </p>
       <p>
-        <a
-          href={betaCta.href}
-          {...(betaCta.external ? { target: '_blank', rel: 'noreferrer' } : {})}
-        >
-          {betaCta.label}
-        </a>
-        {betaCta.external ? '' : ' — we will send an invitation to your Apple ID email.'}
-      </p>
-      <p>
-        To report a bug from the app, use TestFlight&apos;s <strong>Send Beta Feedback</strong>{' '}
-        option (it attaches a screenshot and device details), or email us.
+        Room links you share, like <code>twistedtac.com/join/ABC123</code>, will open in the app
+        when it is installed and on the website otherwise.
       </p>
 
       <h2>Legal</h2>

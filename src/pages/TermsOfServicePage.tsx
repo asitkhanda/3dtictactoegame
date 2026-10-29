@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { LegalPageLayout } from '../components/legal/LegalPageLayout';
 import { SUPPORT_EMAIL } from '../config/app';
 
-const LAST_UPDATED = 'October 28, 2026';
+const LAST_UPDATED = 'October 29, 2026';
 const CONTACT_EMAIL = SUPPORT_EMAIL;
 
 export function TermsOfServicePage() {
@@ -11,13 +11,12 @@ export function TermsOfServicePage() {
       <p>
         Welcome to Twisted Tac. These Terms of Service (&ldquo;Terms&rdquo;) govern your access to
         and use of <a href="https://twistedtac.com">twistedtac.com</a>, the Twisted Tac game, and the
-        Twisted Tac app for iPhone and iPad (together, the &ldquo;Service&rdquo;). By using the Service, you agree to these Terms.
+        Twisted Tac mobile apps for iPhone, iPad and Android (together, the &ldquo;Service&rdquo;). By using the Service, you agree to these Terms.
       </p>
 
       <h2>1. The Service</h2>
       <p>
-        Twisted Tac is a free game, played in a browser or in the iPhone and iPad app (currently in
-        beta), that offers solo play, play against an AI
+        Twisted Tac is a free game, played in a browser or in the mobile apps, that offers solo play, play against an AI
         opponent, local two-player mode on one device, and optional online multiplayer with
         leaderboards when you sign in. We may add, change, or remove features at any time.
       </p>

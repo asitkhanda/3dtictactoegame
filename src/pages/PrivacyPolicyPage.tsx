@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { LegalPageLayout } from '../components/legal/LegalPageLayout';
 import { SUPPORT_EMAIL } from '../config/app';
 
-const LAST_UPDATED = 'October 28, 2026';
+const LAST_UPDATED = 'October 29, 2026';
 const CONTACT_EMAIL = SUPPORT_EMAIL;
 
 export function PrivacyPolicyPage() {
@@ -11,9 +11,9 @@ export function PrivacyPolicyPage() {
       <p>
         Twisted Tac (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;) operates{' '}
         <a href="https://twistedtac.com">twistedtac.com</a>, a free browser game, and the Twisted
-        Tac app for iPhone and iPad (currently in beta). This Privacy Policy explains what
+        Tac mobile apps for iPhone, iPad and Android. This Privacy Policy explains what
         information we collect, how we use it, and your choices. It applies to the website and the
-        app unless a section says otherwise.
+        apps unless a section says otherwise.
       </p>
 
       <h2>1. Information we collect</h2>
@@ -32,7 +32,7 @@ export function PrivacyPolicyPage() {
         If you choose to sign in, we use Google OAuth through our authentication provider,
         Supabase. Google may share basic profile information with us, such as your name, email
         address, and profile picture, according to your Google account settings and Google&apos;s
-        privacy policy. Google sign-in is available on the website and in the iPhone and iPad app.
+        privacy policy. Google sign-in is available on the website and in the mobile apps.
       </p>
 
       <h3>When you sign in with Apple (iPhone and iPad app)</h3>
@@ -71,10 +71,8 @@ export function PrivacyPolicyPage() {
         use the app.
       </p>
       <p>
-        The iPhone and iPad app does not include advertising, analytics or tracking software, and
-        we do not track you across other companies&apos; apps or websites. If you install the beta
-        through Apple&apos;s TestFlight, Apple may share crash reports and any feedback you choose
-        to send, according to your device settings.
+        The mobile apps do not include advertising, analytics or tracking software, and we do not
+        track you across other companies&apos; apps or websites.
       </p>
 
       <h2>2. How we use your information</h2>
@@ -98,8 +96,8 @@ export function PrivacyPolicyPage() {
       <h2>4. Cookies and local storage</h2>
       <p>
         We use cookies and similar technologies through Supabase to maintain your sign-in session.
-        We also use browser storage for non-account settings as described above. In the iPhone and
-        iPad app, preferences such as sound and haptics are stored on your device. You can clear
+        We also use browser storage for non-account settings as described above. In the mobile
+        apps, preferences such as sound and haptics are stored on your device. You can clear
         cookies and local storage in your browser settings, or delete the app, though doing so may
         sign you out or reset preferences.
       </p>
@@ -108,8 +106,8 @@ export function PrivacyPolicyPage() {
       <p>We rely on the following third parties to run Twisted Tac:</p>
       <ul>
         <li>
-          <strong>Apple</strong> — Sign in with Apple, and TestFlight and App Store distribution of
-          the iPhone and iPad app. See{' '}
+          <strong>Apple</strong> — Sign in with Apple, and App Store distribution of the iPhone
+          and iPad app. See{' '}
           <a href="https://www.apple.com/legal/privacy/" rel="noreferrer" target="_blank">
             Apple&apos;s Privacy Policy
           </a>
@@ -151,9 +149,9 @@ export function PrivacyPolicyPage() {
         provide the service. Inactive online matches may be cleaned up automatically.
       </p>
       <p>
-        <strong>Deleting your account.</strong> In the iPhone and iPad app, open your profile and
+        <strong>Deleting your account.</strong> In the mobile apps, open your profile and
         choose <em>Delete account</em>. This permanently deletes your profile, statistics and game
-        history, and, if you signed in with Apple, revokes the app&apos;s access to your Apple
+        history, and, on iPhone and iPad, if you signed in with Apple, revokes the app&apos;s access to your Apple
         account. On the website, you can request deletion by contacting us at{' '}
         <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
       </p>
