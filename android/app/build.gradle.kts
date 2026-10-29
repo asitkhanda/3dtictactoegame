@@ -6,6 +6,12 @@ plugins {
     kotlin("plugin.serialization")
 }
 
+// Release signing key, from keystore.properties (gitignored). Without it the release build is unsigned.
+val keystore = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
 // Supabase URL and publishable key. Without them the app builds and plays local games only.
 val supabase = Properties().apply {
     val file = rootProject.file("supabase.local.properties")
@@ -27,8 +33,20 @@ android {
         buildConfigField("String", "SUPABASE_KEY", "\"${supabase.getProperty("supabase.key", "")}\"")
     }
 
+    signingConfigs {
+        if (keystore.containsKey("storeFile")) {
+            create("release") {
+                storeFile = file(keystore.getProperty("storeFile"))
+                storePassword = keystore.getProperty("storePassword")
+                keyAlias = keystore.getProperty("keyAlias")
+                keyPassword = keystore.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfigs.findByName("release")?.let { signingConfig = it }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

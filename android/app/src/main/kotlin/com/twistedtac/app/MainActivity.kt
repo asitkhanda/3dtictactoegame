@@ -56,11 +56,13 @@ class MainActivity : ComponentActivity() {
 
         // Debug builds can open any board straight away, for testing and screenshots:
         //   adb shell am start -n com.twistedtac.app/.MainActivity --ei size 8 --ez flat false --es mode ai
+        // and `--es moves 13,4,14` plays those cells in turn (use `--es mode two`).
         val debug = if (BuildConfig.DEBUG) {
             DebugOptions(
                 size = intent.getIntExtra("size", 3),
                 flat = intent.getBooleanExtra("flat", false),
                 accessibleBoard = intent.getBooleanExtra("a11y", false),
+                moves = intent.getStringExtra("moves")?.split(',')?.mapNotNull { it.trim().toIntOrNull() }.orEmpty(),
                 autoStart = when (intent.getStringExtra("mode")) {
                     "ai" -> LocalMode.VS_AI
                     "two" -> LocalMode.TWO_PLAYER
@@ -89,7 +91,14 @@ class MainActivity : ComponentActivity() {
 }
 
 /** Debug-build overrides; null in release, where the board is always the classic 3x3x3. */
-private class DebugOptions(val size: Int, val flat: Boolean, val accessibleBoard: Boolean, val autoStart: LocalMode?)
+private class DebugOptions(
+    val size: Int,
+    val flat: Boolean,
+    val accessibleBoard: Boolean,
+    /** Cells played in turn as soon as the game opens, to set up a position. */
+    val moves: List<Int>,
+    val autoStart: LocalMode?,
+)
 
 private sealed interface Route {
     data class Local(val mode: LocalMode, val id: Int) : Route
@@ -157,7 +166,7 @@ private fun TwistedTacApp(auth: AuthManager, links: com.twistedtac.app.game.Deep
             val model = remember(route.id) {
                 // The classic 3x3x3 cube; larger boards arrive with the purchase.
                 val config = GameRulesConfig.of(debug?.size ?: 3, if (debug?.flat == true) ViewMode.FLAT else ViewMode.CUBE)!!
-                LocalGameModel(config, route.mode, scope, feedback)
+                LocalGameModel(config, route.mode, scope, feedback).also { game -> debug?.moves?.forEach(game::humanTap) }
             }
             GameScreen(model, settings, feedback, debug?.accessibleBoard == true, onExit = ::pop)
         }
