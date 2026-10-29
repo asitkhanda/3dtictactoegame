@@ -38,6 +38,7 @@ import {
 } from '../components/ui/dialog';
 import { cn } from '../lib/utils';
 import { GameOverOverlay, type GameOverOutcome } from '../components/game/GameOverOverlay';
+import { exitActionFor } from '../utils/matchExit';
 import { LayerWinStinger, type LayerWinEvent } from '../components/game/LayerWinStinger';
 import { playArcadeSound } from '../utils/arcadeSound';
 import { getPointsForOutcome } from '../services/scoreService';
@@ -55,7 +56,7 @@ function formatForfeitCountdown(disconnectedAt: string | null, nowMs: number): s
 export function OnlineGamePage() {
   const { matchId } = useParams<{ matchId: string }>();
   const navigate = useNavigate();
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading, refreshProfile } = useAuth();
   const { match, connectionStatus, opponentDisconnected, error, refresh, applyMatch } = useMatch(
     matchId,
     user?.id
@@ -161,6 +162,11 @@ export function OnlineGamePage() {
     const timer = setTimeout(() => setLayerEvent(null), 1400);
     return () => clearTimeout(timer);
   }, [layerEvent]);
+
+  // The server settles rank points in the same step that finishes a match; pick them up.
+  useEffect(() => {
+    if (match?.status === 'finished') void refreshProfile();
+  }, [match?.status, refreshProfile]);
 
   // Let the final position land before the overlay takes the screen.
   useEffect(() => {
@@ -350,6 +356,12 @@ export function OnlineGamePage() {
     );
   }
 
+  // The back arrow: a finished or abandoned match has nothing left to forfeit, so just leave.
+  const handleBack = () => {
+    if (exitActionFor(match.status) === 'leave') navigate('/');
+    else setExitDialogOpen(true);
+  };
+
   const exitDialogTitle =
     match.status === 'waiting'
       ? match.host_id === user.id
@@ -498,7 +510,7 @@ export function OnlineGamePage() {
       <header className="sticky top-0 z-50 shrink-0 px-3 py-2 sm:px-4">
         <div className="ui-surface mx-auto w-full max-w-6xl rounded-[var(--ui-radius)] px-2 py-1.5 sm:px-3">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="size-8" onClick={() => setExitDialogOpen(true)}>
+            <Button variant="ghost" size="icon" className="size-8" onClick={handleBack}>
               <ArrowLeft className="size-4" />
             </Button>
             <div className="min-w-0 flex-1">
@@ -650,7 +662,7 @@ export function OnlineGamePage() {
           title={overlayTitle}
           subtitle={overlaySubtitle}
           pointsEarned={overlayPoints}
-          primaryLabel="New game"
+          primaryLabel="Exit"
           onPrimary={() => navigate('/')}
           secondaryLabel="View board"
           onSecondary={() => setShowGameOver(false)}

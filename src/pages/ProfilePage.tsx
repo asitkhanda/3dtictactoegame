@@ -23,8 +23,14 @@ export function ProfilePage() {
     setUsername,
     updateProfile,
     checkUsernameAvailable,
+    refreshProfile,
     isConfigured,
   } = useAuth();
+
+  // Matches settle on the server, so the copy saved at sign-in goes stale; reload it on arrival.
+  useEffect(() => {
+    void refreshProfile();
+  }, [refreshProfile]);
 
   const [displayName, setDisplayName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
