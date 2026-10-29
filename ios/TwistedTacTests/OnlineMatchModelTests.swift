@@ -96,6 +96,52 @@ struct OnlineMatchModelTests {
         #expect(model.match.layerWinners[0].winner == .x)
     }
 
+    @Test("a match won by claiming layers still shows the winning pieces")
+    func layerWinShowsPieces() {
+        let (model, _) = make { row in
+            row.status = .finished
+            row.winner = .x
+            row.currentTurnUserId = nil
+            for cell in [0, 1, 2, 9, 10, 11] { row.board[cell] = .x }
+            row.layerWinners[0] = LayerResult(winner: .x, line: [0, 1, 2])
+            row.layerWinners[1] = LayerResult(winner: .x, line: [9, 10, 11])
+        }
+        #expect(model.winningLine == [0, 1, 2, 9, 10, 11])
+    }
+
+    @Test("a win by forfeit has no winning line")
+    func forfeitHasNoLine() {
+        let (model, _) = make { row in
+            row.status = .finished
+            row.winner = .o
+            row.abandonReason = "voluntary_forfeit"
+            row.board[4] = .x
+        }
+        #expect(model.winningLine == nil)
+    }
+
+    @Test("the final move stays lit after the match ends")
+    func finalMoveStaysLit() async {
+        let (model, _) = make { row in
+            row.board[0] = .x; row.board[9] = .x
+            row.board[3] = .o; row.board[4] = .o
+        }
+        model.humanTap(18)
+        await model.inFlight?.value
+        try? await Task.sleep(for: .milliseconds(1700))
+        #expect(model.lastMove == 18)
+    }
+
+    @Test("an ordinary move's glow still fades")
+    func ordinaryMoveFades() async {
+        let (model, _) = make()
+        model.humanTap(13)
+        await model.inFlight?.value
+        #expect(model.lastMove == 13)
+        try? await Task.sleep(for: .milliseconds(1700))
+        #expect(model.lastMove == nil)
+    }
+
     @Test("a winning move ends the match with me as the winner")
     func winningMove() async {
         let (model, _) = make { row in

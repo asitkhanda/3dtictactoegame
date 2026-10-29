@@ -13,7 +13,8 @@ struct GameOverOverlay: View {
     var primaryIcon: String = "arrow.counterclockwise"
     let onPrimary: () -> Void
     let onViewBoard: () -> Void
-    let onMenu: () -> Void
+    /// A third way out for local games; online ones already have Exit.
+    var onMenu: (() -> Void)?
 
     @State private var shown = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -42,8 +43,10 @@ struct GameOverOverlay: View {
                             .buttonStyle(.glassProminent).tint(accent)
                         Button(action: onViewBoard) { Label("View board", systemImage: "cube").frame(maxWidth: .infinity) }
                             .buttonStyle(.glass)
-                        Button(action: onMenu) { Label("Menu", systemImage: "house").frame(maxWidth: .infinity) }
-                            .buttonStyle(.glass)
+                        if let onMenu {
+                            Button(action: onMenu) { Label("Menu", systemImage: "house").frame(maxWidth: .infinity) }
+                                .buttonStyle(.glass)
+                        }
                     }
                 }
                 .controlSize(.large)
