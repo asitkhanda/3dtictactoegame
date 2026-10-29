@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { appInviteUrl, isMobileBrowser, normalizeRoomCode } from './inviteLinks';
+import {
+  androidIntentUrl,
+  appInviteUrl,
+  isAndroidBrowser,
+  isMobileBrowser,
+  normalizeRoomCode,
+  openInAppUrl,
+} from './inviteLinks';
 
 describe('normalizeRoomCode', () => {
   it('upper-cases and trims a valid code', () => {
@@ -35,5 +42,46 @@ describe('isMobileBrowser', () => {
   it('leaves desktops alone', () => {
     expect(isMobileBrowser('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/130')).toBe(false);
     expect(isMobileBrowser('Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/130')).toBe(false);
+  });
+});
+
+const ANDROID_UA = 'Mozilla/5.0 (Linux; Android 16; Pixel 9) Chrome/130 Mobile Safari/537.36';
+const IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) Safari/605.1.15';
+const DESKTOP_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/130';
+const FALLBACK = 'https://www.twistedtac.com/join/K7M2QX?app=missing';
+
+describe('isAndroidBrowser', () => {
+  it('tells Android from iOS and desktop', () => {
+    expect(isAndroidBrowser(ANDROID_UA)).toBe(true);
+    expect(isAndroidBrowser(IPHONE_UA)).toBe(false);
+    expect(isAndroidBrowser(DESKTOP_UA)).toBe(false);
+  });
+});
+
+describe('androidIntentUrl', () => {
+  it('launches the app, or the fallback page when it is missing', () => {
+    expect(androidIntentUrl('k7m2qx', FALLBACK)).toBe(
+      'intent://join/K7M2QX#Intent;scheme=twistedtac;package=com.twistedtac.app;' +
+        `S.browser_fallback_url=${encodeURIComponent(FALLBACK)};end`
+    );
+  });
+
+  it('gives nothing for a bad code', () => {
+    expect(androidIntentUrl('nope', FALLBACK)).toBeNull();
+  });
+});
+
+describe('openInAppUrl', () => {
+  it('uses an intent link on Android', () => {
+    expect(openInAppUrl('K7M2QX', ANDROID_UA, FALLBACK)).toMatch(/^intent:\/\/join\/K7M2QX#Intent;/);
+  });
+
+  it('uses the custom scheme on iPhone', () => {
+    expect(openInAppUrl('K7M2QX', IPHONE_UA, FALLBACK)).toBe('twistedtac://join/K7M2QX');
+  });
+
+  it('offers nothing on desktop or for a bad code', () => {
+    expect(openInAppUrl('K7M2QX', DESKTOP_UA, FALLBACK)).toBeNull();
+    expect(openInAppUrl('nope', ANDROID_UA, FALLBACK)).toBeNull();
   });
 });
