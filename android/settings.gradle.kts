@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 rootProject.name = "TwistedTac"
 
 include(":engine")
+include(":app")

@@ -1,0 +1,6 @@
+<resources>
+    <color name="background_top">#0E131C</color>
+    <color name="background_bottom">#05070B</color>
+    <color name="player_x">#FF4655</color>
+    <color name="player_o">#3BE8E0</color>
+</resources>
