@@ -12,8 +12,7 @@ import com.twistedtac.engine.MatchStatus
 import com.twistedtac.engine.Player
 import com.twistedtac.engine.RankOutcome
 import com.twistedtac.engine.applyMove
-import com.twistedtac.engine.checkBoardWinner
-import com.twistedtac.engine.checkCrossLayerWinner
+import com.twistedtac.engine.findWinningCells
 import com.twistedtac.engine.mergeMatch
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -80,13 +79,12 @@ class OnlineMatchModel private constructor(
             null -> null
         }
 
-    /** The line to celebrate: a stack-through line, or a flat-board line. */
+    /** The pieces that won it, so the board can show how it was done. */
     override val winningLine: List<Int>?
         get() {
-            if (match.winner == null) return null
-            if (config.size == 1) return listOf(0)
-            return if (config.is3D) checkCrossLayerWinner(config, match.board).line
-            else checkBoardWinner(config, match.board).line
+            // A forfeit or a disconnect decides the match without a line on the board.
+            if (match.abandonReason != null) return null
+            return findWinningCells(config, match.board, match.layerWinners, match.winner)
         }
 
     val opponentDisconnectedAt: String?
@@ -230,7 +228,8 @@ class OnlineMatchModel private constructor(
         clearJob?.cancel()
         clearJob = scope.launch {
             delay(1500)
-            lastMove = null
+            // Once the match is over, the final move stays lit so the finished board shows how it ended.
+            if (outcome == null) lastMove = null
         }
     }
 

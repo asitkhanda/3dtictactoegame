@@ -146,7 +146,8 @@ class LocalGameModel(
         clearJob?.cancel()
         clearJob = scope.launch {
             delay(1500)
-            lastMove = null
+            // Once the game is over, the final move stays lit next to the winning pieces.
+            if (!isFinished) lastMove = null
         }
     }
 }

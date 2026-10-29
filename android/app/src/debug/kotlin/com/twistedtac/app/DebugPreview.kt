@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.emptyFlow
 /**
  * Opens an online match screen against a fake server, with no account or second player:
  *   adb shell am start -n com.twistedtac.app/.MainActivity --es preview win
- * Scenarios: waiting, active, win, loss.
+ * Scenarios: waiting, active, win, loss, layers.
  */
 object DebugPreview {
     class OnlineScenario(val match: MatchRow, val userId: String, val backend: MatchBackend)
@@ -31,10 +31,11 @@ object DebugPreview {
         winner: Player? = null,
         guest: Boolean = true,
         isXNext: Boolean = true,
+        layers: List<LayerResult> = List(3) { LayerResult() },
     ) = MatchRow(
         id = "preview-match", roomCode = "K7M2QX", hostId = ME, guestId = if (guest) THEM else null,
         status = status, config = MatchConfig(3, ViewMode.CUBE), board = board,
-        layerWinners = List(3) { LayerResult() }, isXNext = isXNext, hostPlaysX = true, winner = winner, draw = false,
+        layerWinners = layers, isXNext = isXNext, hostPlaysX = true, winner = winner, draw = false,
         currentTurnUserId = if (status == MatchStatus.ACTIVE) ME else null,
         hostDisconnectedAt = null, guestDisconnectedAt = null, hostLastSeenAt = null, guestLastSeenAt = null,
         abandonReason = null, createdAt = "2026-10-29T18:00:00+00:00", updatedAt = "2026-10-29T18:00:00+00:00", revision = 5,
@@ -49,6 +50,13 @@ object DebugPreview {
                 MatchStatus.FINISHED,
                 board(0 to Player.X, 9 to Player.X, 18 to Player.X, 1 to Player.O, 2 to Player.O),
                 winner = Player.X, isXNext = false,
+            )
+            // Won by claiming two layers, not by a line through the stack.
+            "layers" -> match(
+                MatchStatus.FINISHED,
+                board(0 to Player.X, 1 to Player.X, 2 to Player.X, 9 to Player.X, 10 to Player.X, 11 to Player.X, 3 to Player.O, 4 to Player.O, 12 to Player.O),
+                winner = Player.X, isXNext = false,
+                layers = listOf(LayerResult(Player.X, listOf(0, 1, 2)), LayerResult(Player.X, listOf(9, 10, 11)), LayerResult()),
             )
             else -> return null
         }

@@ -60,6 +60,7 @@ fun OnlineGameScreen(
     settings: GameSettings,
     feedback: GameFeedback,
     forceAccessibleBoard: Boolean,
+    onFinished: () -> Unit,
     onExit: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -89,6 +90,9 @@ fun OnlineGameScreen(
     val status = model.match.status
     val unfinished = status == MatchStatus.WAITING || status == MatchStatus.ACTIVE
     BackHandler { if (unfinished) showExitDialog = true else onExit() }
+
+    // The server settles rank points in the same step that finishes a match; pick them up.
+    LaunchedEffect(model.outcome != null) { if (model.outcome != null) onFinished() }
 
     LaunchedEffect(model.outcome) {
         if (model.outcome == null) {

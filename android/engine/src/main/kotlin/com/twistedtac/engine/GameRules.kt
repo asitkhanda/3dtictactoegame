@@ -260,3 +260,22 @@ fun applyMove(
     if (!hasLegalMoves(config, newBoard, newLayerWinners)) return result(winner = null, draw = true)
     return result(winner = null)
 }
+
+/**
+ * The cells to celebrate once [winner] has won: the line through the stack, the line across a flat
+ * board, or — when the match was won by claiming layers — the lines that claimed them. The server
+ * keeps no winning line, so online play works this out from the final position. Null when there is
+ * no line to show (no winner, or a forfeit decided the match).
+ */
+fun findWinningCells(
+    config: GameRulesConfig,
+    board: Board,
+    layerWinners: List<LayerResult>,
+    winner: Player?,
+): List<Int>? {
+    if (winner == null) return null
+    if (config.size == 1) return listOf(0)
+    if (!config.is3D) return checkBoardWinner(config, board).line
+    checkCrossLayerWinner(config, board).line?.let { return it }
+    return layerWinners.filter { it.winner == winner }.flatMap { it.line.orEmpty() }.distinct().ifEmpty { null }
+}

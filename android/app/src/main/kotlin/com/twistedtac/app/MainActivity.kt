@@ -20,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalContext
 import com.twistedtac.app.auth.AuthManager
 import com.twistedtac.app.backend.Backend
@@ -197,7 +198,11 @@ private fun TwistedTacApp(auth: AuthManager, links: com.twistedtac.app.game.Deep
                 userId?.let { OnlineMatchModel.create(route.match, it, route.preview?.backend ?: MatchService, scope, feedback) }
             }
             if (model != null) {
-                OnlineGameScreen(model, settings, feedback, debug?.accessibleBoard == true, onExit = ::pop)
+                OnlineGameScreen(
+                    model, settings, feedback, debug?.accessibleBoard == true,
+                    onFinished = { scope.launch { auth.refreshProfile() } },
+                    onExit = ::pop,
+                )
             } else {
                 BackHandler(onBack = ::pop)
                 LaunchedEffect(Unit) { pop() }

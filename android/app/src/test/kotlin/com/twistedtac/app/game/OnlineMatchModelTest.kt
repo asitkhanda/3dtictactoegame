@@ -295,3 +295,51 @@ class OnlineMatchModelTest {
         assertNull(OnlineMatchModel.create(bad, HOST, FakeBackend(bad), backgroundScope))
     }
 }
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class OnlineMatchHighlightTest {
+    private fun TestScope.model(backend: FakeBackend, userId: String = HOST) =
+        OnlineMatchModel.create(backend.server, userId, backend, backgroundScope, GameFeedback.None)!!
+
+    @Test
+    fun `a match won by claiming layers still shows the winning pieces`() = runTest {
+        val layers = listOf(LayerResult(Player.X, listOf(0, 1, 2)), LayerResult(Player.X, listOf(9, 10, 11)), LayerResult())
+        val finished = row(
+            status = MatchStatus.FINISHED, winner = Player.X, isXNext = false,
+            board = boardWith(0 to Player.X, 1 to Player.X, 2 to Player.X, 9 to Player.X, 10 to Player.X, 11 to Player.X),
+            layerWinners = layers,
+        )
+        assertEquals(listOf(0, 1, 2, 9, 10, 11), model(FakeBackend(finished)).winningLine)
+    }
+
+    @Test
+    fun `a win by forfeit has no winning line`() = runTest {
+        val forfeited = row(status = MatchStatus.FINISHED, winner = Player.O, isXNext = false, board = boardWith(4 to Player.X))
+            .copy(abandonReason = "voluntary_forfeit")
+        assertNull(model(FakeBackend(forfeited)).winningLine)
+    }
+
+    @Test
+    fun `the final move stays lit after the game ends`() = runTest {
+        val backend = FakeBackend(row(board = boardWith(0 to Player.X, 9 to Player.X), isXNext = true))
+        val model = model(backend)
+        backend.moveHandler = { row(revision = 4, status = MatchStatus.FINISHED, winner = Player.X, isXNext = false, board = boardWith(0 to Player.X, 9 to Player.X, 18 to Player.X)) }
+        model.humanTap(18)
+        runCurrent()
+        advanceTimeBy(5000)
+        assertEquals(18, model.lastMove, "still shown after the usual 1.5 seconds")
+        assertEquals(listOf(0, 9, 18), model.winningLine)
+    }
+
+    @Test
+    fun `an ordinary move's glow still fades`() = runTest {
+        val backend = FakeBackend(row())
+        val model = model(backend)
+        backend.moveHandler = { row(revision = 2, board = boardWith(4 to Player.X), isXNext = false) }
+        model.humanTap(4)
+        runCurrent()
+        assertEquals(4, model.lastMove)
+        advanceTimeBy(2000)
+        assertNull(model.lastMove)
+    }
+}

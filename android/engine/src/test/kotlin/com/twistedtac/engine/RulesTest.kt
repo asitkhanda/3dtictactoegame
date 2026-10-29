@@ -140,3 +140,55 @@ class RulesTest {
         assertNull(applyMove(c, state.board, layers, 13, isXNext = false))
     }
 }
+
+class WinningCellsTest {
+    private fun config(size: Int, mode: ViewMode) = GameRulesConfig.of(size, mode)!!
+    private fun boardOf(cells: Int, vararg marks: Pair<Int, Player>): Board =
+        MutableList<Player?>(cells) { null }.also { b -> marks.forEach { (i, p) -> b[i] = p } }
+
+    @Test
+    fun `a line through the stack is the winning line`() {
+        val c = config(3, ViewMode.CUBE)
+        val board = boardOf(27, 0 to Player.X, 9 to Player.X, 18 to Player.X)
+        assertEquals(listOf(0, 9, 18), findWinningCells(c, board, GameState(c).layerWinners, Player.X))
+    }
+
+    @Test
+    fun `winning by claiming layers shows the lines that claimed them`() {
+        val c = config(3, ViewMode.CUBE)
+        val board = boardOf(
+            27, 0 to Player.X, 1 to Player.X, 2 to Player.X, 9 to Player.X, 10 to Player.X, 11 to Player.X,
+            3 to Player.O, 4 to Player.O, 12 to Player.O,
+        )
+        val layers = listOf(LayerResult(Player.X, listOf(0, 1, 2)), LayerResult(Player.X, listOf(9, 10, 11)), LayerResult())
+        assertEquals(listOf(0, 1, 2, 9, 10, 11), findWinningCells(c, board, layers, Player.X))
+    }
+
+    @Test
+    fun `a layer the loser claimed is not part of the winning pieces`() {
+        val c = config(4, ViewMode.CUBE)
+        val layers = listOf(
+            LayerResult(Player.X, listOf(0, 1, 2, 3)),
+            LayerResult(Player.O, listOf(16, 17, 18, 19)),
+            LayerResult(Player.X, listOf(32, 33, 34, 35)),
+            LayerResult(Player.X, listOf(48, 49, 50, 51)),
+        )
+        val cells = findWinningCells(c, boardOf(64), layers, Player.X)
+        assertEquals(listOf(0, 1, 2, 3, 32, 33, 34, 35, 48, 49, 50, 51), cells)
+    }
+
+    @Test
+    fun `a flat board shows its line and the void shows its only cell`() {
+        val flat = config(3, ViewMode.FLAT)
+        assertEquals(listOf(3, 4, 5), findWinningCells(flat, boardOf(9, 3 to Player.O, 4 to Player.O, 5 to Player.O), GameState(flat).layerWinners, Player.O))
+        val void = config(1, ViewMode.CUBE)
+        assertEquals(listOf(0), findWinningCells(void, boardOf(1, 0 to Player.X), GameState(void).layerWinners, Player.X))
+    }
+
+    @Test
+    fun `no winner or no line gives nothing`() {
+        val c = config(3, ViewMode.CUBE)
+        assertNull(findWinningCells(c, boardOf(27), GameState(c).layerWinners, null))
+        assertNull(findWinningCells(c, boardOf(27), GameState(c).layerWinners, Player.X))
+    }
+}

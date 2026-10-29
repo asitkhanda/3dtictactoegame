@@ -26,8 +26,8 @@ android {
         applicationId = "com.twistedtac.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 3
+        versionName = "1.0.2"
 
         buildConfigField("String", "SUPABASE_URL", "\"${supabase.getProperty("supabase.url", "")}\"")
         buildConfigField("String", "SUPABASE_KEY", "\"${supabase.getProperty("supabase.key", "")}\"")
