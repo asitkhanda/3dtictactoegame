@@ -9,6 +9,8 @@ import io.github.jan.supabase.functions.Functions
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
 import io.ktor.client.engine.okhttp.OkHttp
+import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * The shared Supabase client, built from the URL and publishable key in
@@ -29,7 +31,17 @@ object Backend {
             null
         } else {
             createSupabaseClient(supabaseUrl = url, supabaseKey = key) {
-                httpEngine = OkHttp.create()
+                // The default 10 seconds is too tight for a first request on a slow phone or tablet
+                // connection (DNS, TLS and the request itself all count against it).
+                requestTimeout = 30.seconds
+                httpEngine = OkHttp.create {
+                    config {
+                        // Notice a connection that went quiet while the app sat idle (Wi-Fi sleep, NAT
+                        // timeouts) instead of sending the next request into it and waiting.
+                        pingInterval(15, TimeUnit.SECONDS)
+                        retryOnConnectionFailure(true)
+                    }
+                }
                 install(Auth) {
                     scheme = OAUTH_SCHEME
                     host = OAUTH_HOST

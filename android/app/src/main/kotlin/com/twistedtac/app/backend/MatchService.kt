@@ -3,6 +3,7 @@ package com.twistedtac.app.backend
 import com.twistedtac.engine.InviteLink
 import com.twistedtac.engine.MatchRow
 import com.twistedtac.engine.ViewMode
+import android.util.Log
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.exceptions.RestException
 import io.github.jan.supabase.functions.functions
@@ -62,28 +63,47 @@ class ServiceException(override val message: String) : Exception(message)
  * security-definer RPC.
  */
 object MatchService : MatchBackend {
+    private const val TAG = "TwistedTac"
     private val json = Json { ignoreUnknownKeys = true }
 
+    /** Where the Supabase client comes from. Tests point it at a fake server. */
+    internal var clientProvider: () -> SupabaseClient? = { Backend.client }
+
     private fun requireClient(): SupabaseClient =
-        Backend.client ?: throw ServiceException("No backend connection.")
+        clientProvider() ?: throw ServiceException("No backend connection.")
 
     /**
-     * Postgres raises plain-English messages ("Room full"); show those and hide
-     * transport noise.
+     * Postgres raises plain-English messages ("Room full"); show those and hide transport noise.
+     * Everything else is logged, so a failure on a device can be read from logcat.
      */
     private fun messageFrom(error: Exception, fallback: String): ServiceException {
         if (error is CancellationException) throw error
         if (error is RestException) {
-            val text = error.description?.takeIf { it.isNotBlank() } ?: error.error
-            val parsed = runCatching {
-                val body = json.parseToJsonElement(text).jsonObject
-                (body["error"] ?: body["message"])?.let { (it as? JsonPrimitive)?.contentOrNull }
-            }.getOrNull()
-            val message = parsed ?: text
-            if (message.isNotBlank() && message.length < 160) return ServiceException(message)
+            // PostgREST puts the message in `error` and its code and hint in `description`;
+            // edge functions answer {"error": "..."} as the body.
+            for (text in listOfNotNull(error.error, error.description)) {
+                val parsed = runCatching {
+                    val body = json.parseToJsonElement(text).jsonObject
+                    (body["error"] ?: body["message"])?.let { (it as? JsonPrimitive)?.contentOrNull }
+                }.getOrNull()
+                val message = parsed ?: text.takeUnless { it.startsWith("Code:") || it.startsWith("{") }
+                if (!message.isNullOrBlank() && message.length < 160) return ServiceException(message)
+            }
         }
-        return ServiceException(fallback)
+        Log.w(TAG, "$fallback (${error::class.java.name}: ${error.message})", error)
+        if (isNetworkFailure(error)) {
+            return ServiceException("Can't reach the server. Check your connection and try again.")
+        }
+        // Unexpected: name the exception on screen so a report can say what went wrong.
+        return ServiceException("$fallback (${error::class.java.simpleName})")
     }
+
+    private fun isNetworkFailure(error: Throwable): Boolean =
+        generateSequence(error) { it.cause }.take(6).any {
+            it is java.io.IOException || it::class.java.simpleName in NETWORK_EXCEPTIONS
+        }
+
+    private val NETWORK_EXCEPTIONS = setOf("HttpRequestException", "HttpRequestTimeoutException", "ConnectTimeoutException")
 
     suspend fun createMatch(size: Int, viewMode: ViewMode): MatchRow {
         val client = requireClient()
@@ -117,7 +137,7 @@ object MatchService : MatchBackend {
 
     /** The player's newest unfinished match, for the "resume" banner. */
     suspend fun activeMatch(userId: String): MatchRow? {
-        val client = Backend.client ?: return null
+        val client = clientProvider() ?: return null
         return runCatching {
             client.from("matches").select {
                 filter {
@@ -134,7 +154,7 @@ object MatchService : MatchBackend {
     }
 
     override suspend fun setPresence(id: String, connected: Boolean) {
-        val client = Backend.client ?: return
+        val client = clientProvider() ?: return
         runCatching {
             client.postgrest.rpc(
                 "update_match_presence",
@@ -173,7 +193,7 @@ object MatchService : MatchBackend {
     }
 
     override suspend fun username(userId: String): String? {
-        val client = Backend.client ?: return null
+        val client = clientProvider() ?: return null
         return runCatching {
             client.from("profiles").select(io.github.jan.supabase.postgrest.query.Columns.list("username")) {
                 filter { eq("id", userId) }
@@ -184,7 +204,7 @@ object MatchService : MatchBackend {
 
     /** Postgres changes for one match row. Cancelling the collector removes the channel. */
     override fun events(id: String): Flow<MatchEvent> = callbackFlow {
-        val client = Backend.client
+        val client = clientProvider()
         if (client == null) {
             trySend(MatchEvent.Lost)
             close()
