@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trophy } from 'lucide-react';
 import { ArcadeButton } from '../components/arcade/ArcadeButton';
@@ -25,8 +26,12 @@ const RANK_STYLES: Record<number, { color: string; glow: string }> = {
 
 export function LeaderboardPage() {
   const navigate = useNavigate();
-  const { user, profile, isConfigured } = useAuth();
+  const { user, profile, isConfigured, refreshProfile } = useAuth();
   const { entries, userRank, loading, error } = useLeaderboard(user?.id);
+
+  useEffect(() => {
+    void refreshProfile();
+  }, [refreshProfile]);
 
   return (
     <ArcadeShell variant="landing">

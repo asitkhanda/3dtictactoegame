@@ -56,7 +56,7 @@ function formatForfeitCountdown(disconnectedAt: string | null, nowMs: number): s
 export function OnlineGamePage() {
   const { matchId } = useParams<{ matchId: string }>();
   const navigate = useNavigate();
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading, refreshProfile } = useAuth();
   const { match, connectionStatus, opponentDisconnected, error, refresh, applyMatch } = useMatch(
     matchId,
     user?.id
@@ -162,6 +162,11 @@ export function OnlineGamePage() {
     const timer = setTimeout(() => setLayerEvent(null), 1400);
     return () => clearTimeout(timer);
   }, [layerEvent]);
+
+  // The server settles rank points in the same step that finishes a match; pick them up.
+  useEffect(() => {
+    if (match?.status === 'finished') void refreshProfile();
+  }, [match?.status, refreshProfile]);
 
   // Let the final position land before the overlay takes the screen.
   useEffect(() => {
