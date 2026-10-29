@@ -103,6 +103,25 @@ The release key is `~/.twistedtac/twistedtac-release.jks`, with its passwords in
 lost the app can't be updated. Certificate SHA-256:
 `2A:B5:D6:88:72:1D:F6:7B:C5:5F:34:48:BD:D2:26:4C:71:0E:CD:DE:87:7E:91:49:7B:5A:F1:40:18:50:20:31`
 
+## Invite links (Android App Links)
+`https://www.twistedtac.com/join/CODE` opens the app once Android has verified the site. Verification needs the
+website to serve `/.well-known/assetlinks.json` directly (no redirect) with the release certificate below.
+Only `www` is verified: the apex `twistedtac.com` redirects, so it can't be, and shared links use `www`.
+
+After deploying the website:
+```bash
+curl -i https://www.twistedtac.com/.well-known/assetlinks.json     # 200, application/json
+# Google's own check of the same file (should list com.twistedtac.app and the fingerprint below):
+curl 'https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://www.twistedtac.com&relation=delegate_permission/common.handle_all_urls'
+# On a device or emulator with the app installed:
+adb shell pm verify-app-links --re-verify com.twistedtac.app
+adb shell pm get-app-links com.twistedtac.app                      # www.twistedtac.com: verified
+```
+Android verifies when the app is installed (sideloaded APKs included), so install the app after the site is live.
+If you installed first, run the `--re-verify` command, or open Settings → Apps → Twisted Tac → Open by default →
+Add link and tick `www.twistedtac.com`. Until verified, tapping an invite link opens the browser, whose join page
+has an "Open this room in the app" link.
+
 ## Before submitting
 - [ ] Deploy the website so `/.well-known/assetlinks.json` is live (invite links open the app).
 - [ ] Back up the keystore and `keystore.properties`.
