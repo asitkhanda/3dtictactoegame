@@ -41,7 +41,7 @@ import com.twistedtac.engine.MatchStatus
 import com.twistedtac.engine.ViewMode
 import kotlinx.coroutines.launch
 
-private enum class LobbyAction { CREATE, JOIN }
+private enum class LobbyAction { CREATE, JOIN, CANCEL }
 
 /** Create a room, join one by code, or resume an unfinished match. */
 @Composable
@@ -59,7 +59,24 @@ fun LobbyScreen(
     var resumable by remember { mutableStateOf<MatchRow?>(null) }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(auth.userId) { auth.userId?.let { resumable = MatchService.activeMatch(it) } }
+    LaunchedEffect(auth.userId) {
+        resumable = auth.userId?.let { MatchService.activeMatch(it) }
+            ?.takeIf { it.status == MatchStatus.WAITING || it.status == MatchStatus.ACTIVE }
+    }
+
+    fun cancelRoom(match: MatchRow) {
+        scope.launch {
+            working = LobbyAction.CANCEL
+            errorMessage = null
+            try {
+                MatchService.forfeit(match.id)
+                resumable = null
+            } catch (e: Exception) {
+                errorMessage = e.message
+            }
+            working = null
+        }
+    }
 
     fun create() {
         scope.launch {
@@ -104,7 +121,7 @@ fun LobbyScreen(
             }
 
             Column(Modifier.widthIn(max = 480.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                resumable?.let { ResumeCard(it) { onOpen(it) } }
+                resumable?.let { ResumeCard(it, cancelling = working == LobbyAction.CANCEL, onCancel = { cancelRoom(it) }) { onOpen(it) } }
 
                 Card {
                     Text("Create a room", color = Palette.foreground, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
@@ -159,7 +176,7 @@ private fun Card(content: @Composable () -> Unit) {
 private fun Spinner() = CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = Palette.foreground)
 
 @Composable
-private fun ResumeCard(match: MatchRow, onResume: () -> Unit) {
+private fun ResumeCard(match: MatchRow, cancelling: Boolean, onCancel: () -> Unit, onResume: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().glass(RoundedCornerShape(20.dp), tint = Palette.playerO).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -174,6 +191,11 @@ private fun ResumeCard(match: MatchRow, onResume: () -> Unit) {
                 if (match.status == MatchStatus.WAITING) "Still waiting for an opponent." else "Resume where you left off.",
                 color = Palette.muted, fontSize = 12.sp,
             )
+        }
+        if (match.status == MatchStatus.WAITING) {
+            GlassButton(onCancel, minHeight = 44.dp) {
+                if (cancelling) Spinner() else GlassLabel("Cancel", color = Palette.playerX)
+            }
         }
         GlassButton(onResume, tint = Palette.playerO, prominent = true, minHeight = 44.dp) { GlassLabel("Resume") }
     }

@@ -44,8 +44,9 @@ fun GameOverOverlay(
     primaryLabel: String,
     onPrimary: () -> Unit,
     onViewBoard: () -> Unit,
-    onMenu: () -> Unit,
     modifier: Modifier = Modifier,
+    /** A third way out for local games; online ones already have Exit. */
+    onMenu: (() -> Unit)? = null,
     /** Ranked points earned (or lost) — online games only. */
     points: Int? = null,
 ) {
@@ -105,7 +106,7 @@ fun GameOverOverlay(
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 GlassButton(onPrimary, Modifier.fillMaxWidth(), tint = accent, prominent = true) { GlassLabel(primaryLabel) }
                 GlassButton(onViewBoard, Modifier.fillMaxWidth()) { GlassLabel("View board") }
-                GlassButton(onMenu, Modifier.fillMaxWidth()) { GlassLabel("Menu") }
+                if (onMenu != null) GlassButton(onMenu, Modifier.fillMaxWidth()) { GlassLabel("Menu") }
             }
         }
     }

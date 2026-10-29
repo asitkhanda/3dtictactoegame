@@ -35,7 +35,7 @@ Debug builds can open any board straight away, like the iOS debug picker:
 ```bash
 adb shell am start -n com.twistedtac.app/.MainActivity --ei size 8 --ez flat false --es mode ai
 ```
-`--es moves 13,4,14` plays those cells in turn first (with `mode two`), for setting up positions. `size` is 1–8, `flat` makes a 2D board, `mode` is `ai` or `two`, and `--ez a11y true` shows the TalkBack board without a screen reader. Release builds always play the classic 3×3×3.
+`--es preview waiting|active|win|loss` opens an online match screen against a fake server (no account needed), and `--es moves 13,4,14` plays those cells in turn first (with `mode two`), for setting up positions. `size` is 1–8, `flat` makes a 2D board, `mode` is `ai` or `two`, and `--ez a11y true` shows the TalkBack board without a screen reader. Release builds always play the classic 3×3×3.
 
 ## Modules
 - `app` — Jetpack Compose UI, the OpenGL ES 3 board renderer (`board/`) and sound and

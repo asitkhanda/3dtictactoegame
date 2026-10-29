@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -104,6 +105,7 @@ fun OnlineGameScreen(
         MatchStatus.ACTIVE, MatchStatus.FINISHED -> OnlineGame(
             model, settings, viewport, feedback, forceAccessibleBoard, showGameOver,
             onHideOverlay = { showGameOver = false },
+            onShowResult = { showGameOver = true },
             onBack = { if (unfinished) showExitDialog = true else onExit() },
             onExit = onExit,
         )
@@ -225,6 +227,7 @@ private fun OnlineGame(
     forceAccessibleBoard: Boolean,
     showGameOver: Boolean,
     onHideOverlay: () -> Unit,
+    onShowResult: () -> Unit,
     onBack: () -> Unit,
     onExit: () -> Unit,
 ) {
@@ -245,7 +248,11 @@ private fun OnlineGame(
                 modifier = modifier,
             ) { MuteControl(settings) }
         },
-        banner = { ConnectionBanner(model) },
+        banner = {
+            ConnectionBanner(model)
+            // Once the result card is dismissed, keep a plain way out (and back to the result) in view.
+            if (model.outcome != null && !showGameOver) FinishedActions(onShowResult = onShowResult, onExit = onExit)
+        },
         scoreboard = { modifier ->
             Scoreboard(
                 xLabel = model.xName,
@@ -272,14 +279,21 @@ private fun OnlineGame(
                     subtitle = resultSubtitle(model, outcome),
                     accent = if (result == RankOutcome.WIN) Palette.playerX else Palette.playerO,
                     points = OnlineScoring.points(result),
-                    primaryLabel = "New game",
+                    primaryLabel = "Exit",
                     onPrimary = onExit,
                     onViewBoard = onHideOverlay,
-                    onMenu = onExit,
                 )
             }
         },
     )
+}
+
+@Composable
+private fun FinishedActions(onShowResult: () -> Unit, onExit: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        GlassButton(onShowResult, Modifier.weight(1f), minHeight = 44.dp) { GlassLabel("Show result") }
+        GlassButton(onExit, Modifier.weight(1f), tint = Palette.playerO, prominent = true, minHeight = 44.dp) { GlassLabel("Exit") }
+    }
 }
 
 @Composable

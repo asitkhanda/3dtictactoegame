@@ -62,6 +62,7 @@ class MainActivity : ComponentActivity() {
                 size = intent.getIntExtra("size", 3),
                 flat = intent.getBooleanExtra("flat", false),
                 accessibleBoard = intent.getBooleanExtra("a11y", false),
+                preview = intent.getStringExtra("preview"),
                 moves = intent.getStringExtra("moves")?.split(',')?.mapNotNull { it.trim().toIntOrNull() }.orEmpty(),
                 autoStart = when (intent.getStringExtra("mode")) {
                     "ai" -> LocalMode.VS_AI
@@ -95,6 +96,8 @@ private class DebugOptions(
     val size: Int,
     val flat: Boolean,
     val accessibleBoard: Boolean,
+    /** An online screen to open against a fake server: waiting, active, win or loss. */
+    val preview: String?,
     /** Cells played in turn as soon as the game opens, to set up a position. */
     val moves: List<Int>,
     val autoStart: LocalMode?,
@@ -105,7 +108,12 @@ private sealed interface Route {
     data object Leaderboard : Route
     data object Profile : Route
     data object Lobby : Route
-    data class Online(val match: MatchRow, val id: Int) : Route
+    data class Online(
+        val match: MatchRow,
+        val id: Int,
+        /** Debug previews run against a fake server as a made-up player. */
+        val preview: DebugPreview.OnlineScenario? = null,
+    ) : Route
 }
 
 @Composable
@@ -113,7 +121,10 @@ private fun TwistedTacApp(auth: AuthManager, links: com.twistedtac.app.game.Deep
     var nextId by remember { mutableStateOf(1) }
     // The menu is the bottom of the stack; everything else is pushed on top.
     val stack = remember {
-        mutableStateListOf<Route>().also { list -> debug?.autoStart?.let { list.add(Route.Local(it, 0)) } }
+        mutableStateListOf<Route>().also { list ->
+            debug?.autoStart?.let { list.add(Route.Local(it, 0)) }
+            debug?.preview?.let { name -> DebugPreview.online(name)?.let { list.add(Route.Online(it.match, 0, it)) } }
+        }
     }
     var showSignIn by remember { mutableStateOf(false) }
     var joiningInvite by remember { mutableStateOf(false) }
@@ -181,9 +192,9 @@ private fun TwistedTacApp(auth: AuthManager, links: com.twistedtac.app.game.Deep
             onOpen = { match -> push(Route.Online(match, nextId++)) },
         )
         is Route.Online -> {
-            val userId = auth.userId
+            val userId = route.preview?.userId ?: auth.userId
             val model = remember(route.id) {
-                userId?.let { OnlineMatchModel.create(route.match, it, MatchService, scope, feedback) }
+                userId?.let { OnlineMatchModel.create(route.match, it, route.preview?.backend ?: MatchService, scope, feedback) }
             }
             if (model != null) {
                 OnlineGameScreen(model, settings, feedback, debug?.accessibleBoard == true, onExit = ::pop)
