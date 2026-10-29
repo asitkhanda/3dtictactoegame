@@ -7,12 +7,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import com.twistedtac.app.game.GameFeedback
+import androidx.compose.ui.platform.LocalContext
+import com.twistedtac.app.feedback.ArcadeFeedback
+import com.twistedtac.app.game.GameSettings
 import com.twistedtac.app.game.LocalGameModel
 import com.twistedtac.app.game.LocalMode
 import com.twistedtac.app.theme.TwistedTacTheme
@@ -33,6 +36,7 @@ class MainActivity : ComponentActivity() {
         val debug = if (BuildConfig.DEBUG) {
             DebugOptions(
                 size = intent.getIntExtra("size", 3),
+                accessibleBoard = intent.getBooleanExtra("a11y", false),
                 flat = intent.getBooleanExtra("flat", false),
                 autoStart = when (intent.getStringExtra("mode")) {
                     "ai" -> LocalMode.VS_AI
@@ -53,13 +57,16 @@ class MainActivity : ComponentActivity() {
 private data class ActiveGame(val mode: LocalMode, val id: Int)
 
 /** Debug-build overrides; null in release, where the board is always the classic 3x3x3. */
-private class DebugOptions(val size: Int, val flat: Boolean, val autoStart: LocalMode?)
+private class DebugOptions(val size: Int, val flat: Boolean, val accessibleBoard: Boolean, val autoStart: LocalMode?)
 
 @Composable
 private fun TwistedTacApp(debug: DebugOptions?) {
     var game by remember { mutableStateOf(debug?.autoStart?.let { ActiveGame(it, 0) }) }
     var nextId by remember { mutableStateOf(1) }
-    val feedback = GameFeedback.None
+    val context = LocalContext.current.applicationContext
+    val settings = remember { GameSettings(context) }
+    val feedback = remember { ArcadeFeedback(context, settings) }
+    DisposableEffect(feedback) { onDispose { feedback.release() } }
 
     val active = game
     if (active == null) {
@@ -71,6 +78,12 @@ private fun TwistedTacApp(debug: DebugOptions?) {
             val config = GameRulesConfig.of(debug?.size ?: 3, if (debug?.flat == true) ViewMode.FLAT else ViewMode.CUBE)!!
             LocalGameModel(config, active.mode, scope, feedback)
         }
-        GameScreen(model = model, feedback = feedback, onExit = { game = null })
+        GameScreen(
+            model = model,
+            settings = settings,
+            feedback = feedback,
+            forceAccessibleBoard = debug?.accessibleBoard == true,
+            onExit = { game = null },
+        )
     }
 }

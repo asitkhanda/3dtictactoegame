@@ -9,14 +9,19 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -46,6 +51,7 @@ import com.twistedtac.app.board.BoardView
 import com.twistedtac.app.board.BoardViewport
 import com.twistedtac.app.game.GameFeedback
 import com.twistedtac.app.game.GameOutcome
+import com.twistedtac.app.game.GameSettings
 import com.twistedtac.app.game.LocalGameModel
 import com.twistedtac.app.game.LocalMode
 import com.twistedtac.app.theme.Palette
@@ -53,7 +59,13 @@ import com.twistedtac.engine.Player
 import kotlinx.coroutines.delay
 
 @Composable
-fun GameScreen(model: LocalGameModel, feedback: GameFeedback, onExit: () -> Unit) {
+fun GameScreen(
+    model: LocalGameModel,
+    settings: GameSettings,
+    feedback: GameFeedback,
+    forceAccessibleBoard: Boolean,
+    onExit: () -> Unit,
+) {
     val scope = rememberCoroutineScope()
     val viewport = remember { BoardViewport(scope) }
     var showGameOver by remember { mutableStateOf(false) }
@@ -84,51 +96,84 @@ fun GameScreen(model: LocalGameModel, feedback: GameFeedback, onExit: () -> Unit
         viewport.reset()
     }
 
-    Box(Modifier.fillMaxSize().background(Palette.background)) {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .systemBarsPadding()
-                .padding(horizontal = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            TopBar(
-                model = model,
-                onBack = onExit,
-                onRules = { showRules = true },
-                onRestart = { model.restart(); viewport.reset() },
-                modifier = Modifier.widthIn(max = READABLE_WIDTH).padding(top = 4.dp),
-            )
-            Scoreboard(
-                xLabel = if (model.mode == LocalMode.VS_AI) "You" else "X",
-                oLabel = if (model.mode == LocalMode.VS_AI) "AI" else "O",
-                xScore = model.xLayers,
-                oScore = model.oLayers,
-                threshold = if (model.config.is3D && model.config.size > 1) model.config.matchWinThreshold else 0,
-                xActive = model.winner == Player.X || (!model.isFinished && model.isXNext),
-                oActive = model.winner == Player.O || (!model.isFinished && !model.isXNext),
-                thinkingSide = if (model.thinking) Player.O else null,
-                modifier = Modifier.widthIn(max = READABLE_WIDTH),
-            )
-            Box(Modifier.weight(1f).fillMaxWidth()) {
+    val accessibleBoard = rememberAccessibleBoardNeeded(forceAccessibleBoard)
+
+    val topBar: @Composable (Modifier) -> Unit = { modifier ->
+        TopBar(
+            model = model,
+            settings = settings,
+            onBack = onExit,
+            onRules = { showRules = true },
+            onRestart = { model.restart(); viewport.reset() },
+            modifier = modifier,
+        )
+    }
+    val scoreboard: @Composable (Modifier) -> Unit = { modifier ->
+        Scoreboard(
+            xLabel = if (model.mode == LocalMode.VS_AI) "You" else "X",
+            oLabel = if (model.mode == LocalMode.VS_AI) "AI" else "O",
+            xScore = model.xLayers,
+            oScore = model.oLayers,
+            threshold = if (model.config.is3D && model.config.size > 1) model.config.matchWinThreshold else 0,
+            xActive = model.winner == Player.X || (!model.isFinished && model.isXNext),
+            oActive = model.winner == Player.O || (!model.isFinished && !model.isXNext),
+            thinkingSide = if (model.thinking) Player.O else null,
+            modifier = modifier,
+        )
+    }
+    val board: @Composable (Modifier) -> Unit = { modifier ->
+        Box(modifier) {
+            if (accessibleBoard) {
+                AccessibleBoard(model, Modifier.fillMaxSize())
+            } else {
                 BoardView(model, viewport, Modifier.fillMaxSize())
                 LayerBanner(model, Modifier.align(Alignment.TopCenter))
             }
-            Text(
-                text = statusText(model),
-                color = Palette.foreground,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
-            )
-            CameraControls(
-                viewport = viewport,
-                is3D = model.config.is3D,
-                feedback = feedback,
-                modifier = Modifier.widthIn(max = READABLE_WIDTH).padding(bottom = 6.dp),
-            )
+        }
+    }
+    val status: @Composable () -> Unit = {
+        Text(
+            text = statusText(model),
+            color = Palette.foreground,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
+        )
+    }
+    val controls: @Composable (Modifier) -> Unit = { modifier ->
+        if (!accessibleBoard) CameraControls(viewport, model.config.is3D, feedback, modifier)
+    }
+
+    Box(Modifier.fillMaxSize().background(Palette.background)) {
+        BoxWithConstraints(Modifier.fillMaxSize().systemBarsPadding().padding(horizontal = 14.dp)) {
+            if (maxWidth > maxHeight) {
+                // Landscape: the board takes the height, the HUD stacks beside it.
+                Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    board(Modifier.weight(1f).fillMaxHeight())
+                    Column(
+                        Modifier.width(SIDE_PANEL_WIDTH).fillMaxHeight().verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+                    ) {
+                        topBar(Modifier.padding(top = 4.dp))
+                        scoreboard(Modifier)
+                        status()
+                        controls(Modifier.padding(bottom = 6.dp))
+                    }
+                }
+            } else {
+                Column(
+                    Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    topBar(Modifier.widthIn(max = READABLE_WIDTH).padding(top = 4.dp))
+                    scoreboard(Modifier.widthIn(max = READABLE_WIDTH))
+                    board(Modifier.weight(1f).fillMaxWidth())
+                    status()
+                    controls(Modifier.widthIn(max = READABLE_WIDTH).padding(bottom = 6.dp))
+                }
+            }
         }
 
         val outcome = model.outcome
@@ -149,10 +194,12 @@ fun GameScreen(model: LocalGameModel, feedback: GameFeedback, onExit: () -> Unit
 }
 
 private val READABLE_WIDTH = 560.dp
+private val SIDE_PANEL_WIDTH = 340.dp
 
 @Composable
 private fun TopBar(
     model: LocalGameModel,
+    settings: GameSettings,
     onBack: () -> Unit,
     onRules: () -> Unit,
     onRestart: () -> Unit,
@@ -165,6 +212,9 @@ private fun TopBar(
             Text(if (model.mode == LocalMode.VS_AI) "vs AI" else "2 players", color = Palette.muted, fontSize = 12.sp)
         }
         IconControl(onRules, "Rules") { Icon(Icons.Filled.Info, null, tint = Palette.foreground) }
+        IconControl(settings::toggleSound, if (settings.soundMuted) "Unmute" else "Mute") {
+            SpeakerGlyph(settings.soundMuted, Palette.foreground)
+        }
         IconControl(onRestart, "Restart game") { Icon(Icons.Filled.Refresh, null, tint = Palette.foreground) }
     }
 }

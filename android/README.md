@@ -24,10 +24,11 @@ Debug builds can open any board straight away, like the iOS debug picker:
 ```bash
 adb shell am start -n com.twistedtac.app/.MainActivity --ei size 8 --ez flat false --es mode ai
 ```
-`size` is 1–8, `flat` makes a 2D board, `mode` is `ai` or `two`. Release builds always play the classic 3×3×3.
+`size` is 1–8, `flat` makes a 2D board, `mode` is `ai` or `two`, and `--ez a11y true` shows the TalkBack board without a screen reader. Release builds always play the classic 3×3×3.
 
 ## Modules
-- `app` — Jetpack Compose UI and the OpenGL ES 3 board renderer (`board/`).
+- `app` — Jetpack Compose UI, the OpenGL ES 3 board renderer (`board/`) and sound and
+  haptics (`feedback/`). The sound files are listed in `app/SOUND_SOURCES.md`.
 - `engine` — pure Kotlin/JVM game engine: rules, AI, match model and merge rule.
   A port of `ios/TwistedTacKit` (itself a port of `supabase/functions/_shared/gameRules.ts`).
   Has no Android dependencies, so tests run on the JVM. Also holds the board layout,

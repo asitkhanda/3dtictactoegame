@@ -1,7 +1,10 @@
 package com.twistedtac.app.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,14 +34,7 @@ import com.twistedtac.app.theme.Palette
 fun LandingScreen(onPlay: (LocalMode) -> Unit, feedback: GameFeedback = GameFeedback.None) {
     var showRules by remember { mutableStateOf(false) }
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .background(Palette.background)
-            .systemBarsPadding(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Spacer(Modifier.weight(1f))
+    val title: @Composable () -> Unit = {
         Column(
             Modifier.padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -59,7 +55,8 @@ fun LandingScreen(onPlay: (LocalMode) -> Unit, feedback: GameFeedback = GameFeed
                 textAlign = TextAlign.Center,
             )
         }
-        Spacer(Modifier.height(28.dp))
+    }
+    val menu: @Composable () -> Unit = {
         Column(
             Modifier
                 .widthIn(max = 420.dp)
@@ -81,7 +78,29 @@ fun LandingScreen(onPlay: (LocalMode) -> Unit, feedback: GameFeedback = GameFeed
             ) { GlassLabel("2 Player") }
             GlassButton(onClick = { showRules = true }, modifier = Modifier.fillMaxWidth()) { GlassLabel("How to play") }
         }
-        Spacer(Modifier.weight(1.3f))
+    }
+
+    BoxWithConstraints(
+        Modifier
+            .fillMaxSize()
+            .background(Palette.background)
+            .systemBarsPadding(),
+    ) {
+        if (maxWidth > maxHeight) {
+            // Landscape: title on one side, menu on the other, so nothing needs scrolling.
+            Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { title() }
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { menu() }
+            }
+        } else {
+            Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                Spacer(Modifier.weight(1f))
+                title()
+                Spacer(Modifier.height(28.dp))
+                menu()
+                Spacer(Modifier.weight(1.3f))
+            }
+        }
     }
 
     if (showRules) RulesSheet(onDismiss = { showRules = false })
