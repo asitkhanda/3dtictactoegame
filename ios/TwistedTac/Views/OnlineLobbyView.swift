@@ -15,7 +15,7 @@ struct OnlineLobbyView: View {
     @State private var resumable: MatchRow?
     @FocusState private var codeFocused: Bool
 
-    private enum Action { case create, join }
+    private enum Action { case create, join, cancel }
 
     var body: some View {
         ZStack {
@@ -64,6 +64,11 @@ struct OnlineLobbyView: View {
                     .font(.caption).foregroundStyle(Theme.muted)
             }
             Spacer()
+            if match.status == .waiting {
+                Button("Cancel", role: .destructive) { Task { await cancel(match) } }
+                    .buttonStyle(.glass)
+                    .disabled(working != nil)
+            }
             Button("Resume") { onNavigate(.online(match)) }
                 .buttonStyle(.glassProminent).tint(Theme.playerO)
         }
@@ -152,6 +157,21 @@ struct OnlineLobbyView: View {
 
     private func loadResumable() async {
         guard let id = auth.userID else { return }
-        resumable = await MatchService.activeMatch(for: id)
+        let match = await MatchService.activeMatch(for: id)
+        // Only an unfinished match is worth offering.
+        resumable = match.flatMap { $0.status == .waiting || $0.status == .active ? $0 : nil }
+    }
+
+    /// Cancels a room nobody has joined, so it doesn't linger. Nobody loses anything.
+    private func cancel(_ match: MatchRow) async {
+        working = .cancel
+        errorMessage = nil
+        defer { working = nil }
+        do {
+            _ = try await MatchService.forfeit(matchID: match.id)
+            resumable = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 }

@@ -295,3 +295,24 @@ public func applyMove(
     if !hasLegalMoves(config, newBoard, newLayerWinners) { return result(winner: nil, draw: true) }
     return result(winner: nil)
 }
+
+/// The cells to celebrate once `winner` has won: the line through the stack, the line across a flat
+/// board, or — when the match was won by claiming layers — the lines that claimed them. The server
+/// keeps no winning line, so online play works this out from the final position. Nil when there is
+/// no line to show (no winner).
+public func findWinningCells(
+    _ config: GameRulesConfig,
+    _ board: Board,
+    _ layerWinners: [LayerResult],
+    winner: Player?
+) -> [Int]? {
+    guard let winner else { return nil }
+    if config.size == 1 { return [0] }
+    if !config.is3D { return checkBoardWinner(config, board).line }
+    if let line = checkCrossLayerWinner(config, board).line { return line }
+    var cells: [Int] = []
+    for layer in layerWinners where layer.winner == winner {
+        for cell in layer.line ?? [] where !cells.contains(cell) { cells.append(cell) }
+    }
+    return cells.isEmpty ? nil : cells
+}

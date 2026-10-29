@@ -63,12 +63,11 @@ final class OnlineMatchModel: BoardGameSource {
         }
     }
 
-    /// The line to celebrate: a stack-through line, or a flat-board line.
+    /// The pieces that won it, so the board can show how it was done. A forfeit or a
+    /// disconnect decides the match without a line on the board.
     var winningLine: [Int]? {
-        guard match.winner != nil else { return nil }
-        if config.size == 1 { return [0] }
-        if config.is3D { return checkCrossLayerWinner(config, match.board).line }
-        return checkBoardWinner(config, match.board).line
+        guard match.abandonReason == nil else { return nil }
+        return findWinningCells(config, match.board, match.layerWinners, winner: match.winner)
     }
 
     var opponentDisconnectedAt: String? {
@@ -209,7 +208,8 @@ final class OnlineMatchModel: BoardGameSource {
     private func scheduleLastMoveClear() {
         Task {
             try? await Task.sleep(for: .milliseconds(1500))
-            lastMove = nil
+            // Once the match is over, the final move stays lit so the finished board shows how it ended.
+            if outcome == nil { lastMove = nil }
         }
     }
 

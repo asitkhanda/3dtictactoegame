@@ -12,6 +12,7 @@ struct OnlineGameView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @Environment(GameSettings.self) private var settings
+    @Environment(AuthManager.self) private var auth
 
     var body: some View {
         ZStack {
@@ -134,6 +135,7 @@ struct OnlineGameView: View {
         VStack(spacing: 10) {
             topBar.readableWidth()
             banner.readableWidth()
+            finishedActions.readableWidth()
             ScoreboardView(
                 xLabel: model.xName, oLabel: model.oName,
                 xScore: model.state.layerWinners.filter { $0.winner == .x }.count,
@@ -162,17 +164,18 @@ struct OnlineGameView: View {
                     subtitle: resultSubtitle(outcome),
                     accent: result == .loss ? Theme.playerO : result == .draw ? Theme.playerO : Theme.playerX,
                     points: OnlineScoring.points(for: result),
-                    primaryLabel: "New game",
-                    primaryIcon: "plus",
+                    primaryLabel: "Exit",
+                    primaryIcon: "rectangle.portrait.and.arrow.right",
                     onPrimary: { dismiss() },
-                    onViewBoard: { showGameOver = false },
-                    onMenu: { dismiss() }
+                    onViewBoard: { showGameOver = false }
                 )
                 .transition(.opacity)
             }
         }
         .onChange(of: model.outcome) { _, outcome in
             guard outcome != nil else { showGameOver = false; return }
+            // The server settles rank points in the same step that finishes a match; pick them up.
+            Task { await auth.refreshProfile() }
             // Let the final position land before the overlay takes the screen.
             Task {
                 try? await Task.sleep(for: .milliseconds(model.match.winner == nil ? 450 : 950))
@@ -199,6 +202,23 @@ struct OnlineGameView: View {
             }
         }
         .padding(.horizontal, 14).padding(.top, 4)
+    }
+
+    /// Once the result card is dismissed, keep a plain way out (and back to the result) in view.
+    @ViewBuilder
+    private var finishedActions: some View {
+        if model.outcome != nil, !showGameOver {
+            GlassEffectContainer(spacing: 10) {
+                HStack(spacing: 10) {
+                    Button { showGameOver = true } label: { Text("Show result").frame(maxWidth: .infinity) }
+                        .buttonStyle(.glass)
+                    Button { dismiss() } label: { Text("Exit").frame(maxWidth: .infinity) }
+                        .buttonStyle(.glassProminent).tint(Theme.playerO.opacity(0.7))
+                }
+            }
+            .controlSize(.large)
+            .padding(.horizontal, 14)
+        }
     }
 
     @ViewBuilder

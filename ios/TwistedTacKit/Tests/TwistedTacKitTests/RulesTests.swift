@@ -136,3 +136,56 @@ struct RulesTests {
         #expect(applyMove(c, board: state.board, layerWinners: state.layerWinners, index: 13, isXNext: false) == nil)
     }
 }
+
+@Suite("Winning cells")
+struct WinningCellsTests {
+    private func config(_ size: Int, _ mode: ViewMode) -> GameRulesConfig { GameRulesConfig(size: size, viewMode: mode)! }
+    private func board(_ cells: Int, _ marks: [Int: Player]) -> Board {
+        var board = Board(repeating: nil, count: cells)
+        for (index, mark) in marks { board[index] = mark }
+        return board
+    }
+
+    @Test("a line through the stack is the winning line")
+    func crossLayer() {
+        let c = config(3, .cube)
+        let cells = findWinningCells(c, board(27, [0: .x, 9: .x, 18: .x]), GameState(config: c).layerWinners, winner: .x)
+        #expect(cells == [0, 9, 18])
+    }
+
+    @Test("winning by claiming layers shows the lines that claimed them")
+    func layerClaims() {
+        let c = config(3, .cube)
+        let layers = [
+            LayerResult(winner: .x, line: [0, 1, 2]), LayerResult(winner: .x, line: [9, 10, 11]), LayerResult(),
+        ]
+        let cells = findWinningCells(c, board(27, [0: .x, 1: .x, 2: .x, 9: .x, 10: .x, 11: .x]), layers, winner: .x)
+        #expect(cells == [0, 1, 2, 9, 10, 11])
+    }
+
+    @Test("a layer the loser claimed is not part of the winning pieces")
+    func loserLayerExcluded() {
+        let c = config(4, .cube)
+        let layers = [
+            LayerResult(winner: .x, line: [0, 1, 2, 3]), LayerResult(winner: .o, line: [16, 17, 18, 19]),
+            LayerResult(winner: .x, line: [32, 33, 34, 35]), LayerResult(winner: .x, line: [48, 49, 50, 51]),
+        ]
+        let cells = findWinningCells(c, board(64, [:]), layers, winner: .x)
+        #expect(cells == [0, 1, 2, 3, 32, 33, 34, 35, 48, 49, 50, 51])
+    }
+
+    @Test("a flat board shows its line and the void shows its only cell")
+    func flatAndVoid() {
+        let flat = config(3, .flat)
+        #expect(findWinningCells(flat, board(9, [3: .o, 4: .o, 5: .o]), GameState(config: flat).layerWinners, winner: .o) == [3, 4, 5])
+        let void = config(1, .cube)
+        #expect(findWinningCells(void, board(1, [0: .x]), GameState(config: void).layerWinners, winner: .x) == [0])
+    }
+
+    @Test("no winner or no line gives nothing")
+    func nothing() {
+        let c = config(3, .cube)
+        #expect(findWinningCells(c, board(27, [:]), GameState(config: c).layerWinners, winner: nil) == nil)
+        #expect(findWinningCells(c, board(27, [:]), GameState(config: c).layerWinners, winner: .x) == nil)
+    }
+}

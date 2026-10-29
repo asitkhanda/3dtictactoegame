@@ -149,7 +149,8 @@ final class LocalGameModel {
         clearTask = Task {
             try? await Task.sleep(for: .milliseconds(1500))
             if Task.isCancelled { return }
-            lastMove = nil
+            // Once the game is over, the final move stays lit next to the winning pieces.
+            if !isFinished { lastMove = nil }
         }
     }
 }
